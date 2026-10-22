@@ -146,25 +146,26 @@
   
   <div class="bai__than">
 <section id="buoc">
-  <h2>Four steps</h2>
+  <h2>Four simple steps</h2>
   <ol class="buoc">
     <li>
       <h3>Download the launcher</h3>
-      <p><a class="btn btn--chinh" href="../launcher/RongVietLauncher-Setup-0.3.2.exe">Download for Windows (0.3.2)</a></p>
+      <p style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px;">
+        <a class="btn btn--chinh" href="../launcher/RongVietLauncher.exe">Download RongVietLauncher.exe (1.5 MB)</a>
+        <a class="btn" href="../launcher/RongVietLauncher.zip">ZIP Archive (1.3 MB)</a>
+      </p>
     </li>
     <li>
-      <h3>Run the installer</h3>
-      <p>Windows will warn you once because the file has no purchased code-signing
-        certificate. Click <b>More info → Run anyway</b>.</p>
+      <h3>Run directly (No installation required)</h3>
+      <p>The launcher is a standalone portable application that runs immediately without installation. If Windows SmartScreen shows a prompt on first run, click <b>More info → Run anyway</b>.</p>
     </li>
     <li>
-      <h3>Open the launcher, sign in with Steam, click Play</h3>
-      <p>Signing in opens your browser. Your Steam password never goes through the
-        launcher.</p>
+      <h3>Open launcher, connect Steam, click Play</h3>
+      <p>The launcher automatically detects your active Steam profile or lets you sign in securely. Click <b>START GAME</b> to launch The Isle with integrated HUD, Radar, and Proximity Voice.</p>
     </li>
     <li>
-      <h3>Talk</h3>
-      <p>Nothing else to press. Just talk and the people near you will hear you.</p>
+      <h3>Talk & Survive</h3>
+      <p>Talk naturally into your microphone in-game. Nearby players will hear you with realistic directional 3D audio based on your proximity.</p>
     </li>
   </ol>
 </section>
@@ -221,12 +222,14 @@
     app does and doesn't do, and you can check it yourself using the section
     below.</p>
 
-  <h3>Verify the downloaded file</h3>
-  <p>The file isn't code-signed, so the surest way to know you got our real file is to
-    compare the checksum. Open PowerShell and paste:</p>
-  <p><code class="bam">Get-FileHash "$env:USERPROFILE\Downloads\RongVietLauncher-Setup-0.3.2.exe" -Algorithm SHA256</code></p>
-  <p>The result must match this string exactly:</p>
-  <p><code class="bam">ba10553038fd9edac50334a36d1f224e3429fc26b35767a11d5b8157986d0a31</code></p>
+    <h3>Verify the downloaded file</h3>
+  <p>The file isn't code-signed, so the surest way to know you got our real official file is to
+    compare the SHA-256 checksum. Open PowerShell and paste:</p>
+  <p><code class="bam">Get-FileHash "$env:USERPROFILE\Downloads\RongVietLauncher.exe" -Algorithm SHA256</code></p>
+  <p>The result for .exe must match this string exactly:</p>
+  <p><code class="bam">2471A65B95DE0E9FEBC777FF3BA0B6F4C7755D1C61CF8EB10314E18F3C96DB19</code></p>
+  <p>Or for .zip archive:</p>
+  <p><code class="bam">AD2B405A406A2D346257A4E1F347D183EBDDDF8B50B5C7CCEB856DEE0B802175</code></p>
   <p class="dim nho">If even one character differs, don't run it. Download it again from this page.</p>
 
   <h3>The overlay doesn't show up in the game</h3>
@@ -238,8 +241,7 @@
     fullscreen, and alt-tab is even faster.</p>
 
   <h3>How do I uninstall it?</h3>
-  <p><b>Settings → Apps → Installed apps → Rong Viet Launcher → Uninstall</b>. That's it:
-    the game is not affected and you can still join the server as usual.</p>
+  <p>The new launcher is a standalone portable executable with no system installation. You can simply delete the <b>RongVietLauncher.exe</b> file to remove it completely. The game will remain untouched.</p>
 
   <h3>Is this the voice launcher other servers tell me to install?</h3>
   <p><b>No.</b> That one is IsleVOIP, made by someone else, and many Vietnamese servers
