@@ -40,7 +40,7 @@ async function fetchIslePilot(endpoint) {
  * 1. Lấy trạng thái khủng long đang sống của người chơi (/api/player/live)
  */
 async function getLivePlayer(steamId) {
-    if (!steamId) return { ok: false, err: 'chua_dang_nhap' };
+    if (!steamId) return { ok: false, in_game: false, err: 'chua_dang_nhap' };
 
     try {
         const raw = await fetchIslePilot(`/players/${steamId}`);
@@ -59,10 +59,20 @@ async function getLivePlayer(steamId) {
             const growth = typeof raw.growth === 'number' ? raw.growth : 1.0;
             const prime = raw.prime || {};
 
+            const primeConditions = new Array(10).fill(false);
+            if (Array.isArray(prime.quests)) {
+                prime.quests.forEach(q => {
+                    if (q.index >= 1 && q.index <= 10) {
+                        primeConditions[q.index - 1] = !!q.done;
+                    }
+                });
+            }
+
             const savedSkin = skinStore.getSkin(steamId, species) || {};
 
             return {
                 ok: true,
+                in_game: true,
                 song: {
                     in_game: true,
                     species: species,
@@ -78,6 +88,7 @@ async function getLivePlayer(steamId) {
                     prime: prime.total || 10,
                     prime_dat: prime.completed || 0,
                     prime_eligible: !!raw.primeEligible,
+                    prime_conditions: primeConditions,
                     da_chet: false
                 },
                 caps: {
@@ -91,6 +102,7 @@ async function getLivePlayer(steamId) {
 
     return {
         ok: true,
+        in_game: false,
         song: {
             in_game: false,
             da_chet: false
@@ -105,24 +117,52 @@ async function getLivePlayer(steamId) {
  * 2. Lấy vị trí tọa độ người chơi trên bản đồ (/api/player/map)
  */
 async function getPlayerMap(steamId) {
-    if (!steamId) return { ok: false, err: 'chua_dang_nhap' };
+    if (!steamId) return { ok: false, in_game: false, err: 'chua_dang_nhap' };
 
     try {
-        const raw = await fetchIslePilot(`/players/${steamId}`);
+        const [raw, allPlayersData] = await Promise.all([
+            fetchIslePilot(`/players/${steamId}`),
+            fetchIslePilot('/players').catch(() => null)
+        ]);
 
         if (raw && raw.species && raw.position) {
             const pos = raw.position;
             const px_moi_cm = 0.007014388;
             const lat = 3908.5 + ((pos.x || 0) * px_moi_cm);
             const lng = 3900.0 + ((pos.y || 0) * px_moi_cm);
+            const heading = typeof pos.yaw === 'number' ? Math.round(pos.yaw * 10) / 10 : 0;
+            const mySpecies = skinStore.normalizeSpecies(raw.species);
+
+            const nearby = [];
+            const playersList = allPlayersData?.players || [];
+            for (const p of playersList) {
+                if (!p.online || !p.position || p.steamId === steamId) continue;
+                const dx_m = ((p.position.x || 0) - (pos.x || 0)) / 100;
+                const dy_m = ((p.position.y || 0) - (pos.y || 0)) / 100;
+                const dist_m = Math.sqrt(dx_m * dx_m + dy_m * dy_m);
+                if (dist_m <= 2500) {
+                    const angle = (Math.atan2(dy_m, dx_m) * (180 / Math.PI) + 360) % 360;
+                    const pSpecies = skinStore.normalizeSpecies(p.species || 'Unknown');
+                    nearby.push({
+                        name: p.name || pSpecies,
+                        species: pSpecies,
+                        distance: Math.round(dist_m),
+                        angle: Math.round(angle),
+                        yaw: p.position.yaw || 0,
+                        is_ally: pSpecies === mySpecies
+                    });
+                }
+            }
 
             return {
                 ok: true,
                 in_game: true,
                 lat: Math.round(lat * 10) / 10,
                 lng: Math.round(lng * 10) / 10,
-                species: skinStore.normalizeSpecies(raw.species),
+                heading: heading,
+                species: mySpecies,
                 growth: raw.growth,
+                nearby: nearby,
                 age_s: 5,
                 stale: false,
                 tick_s: 15
