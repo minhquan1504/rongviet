@@ -6,12 +6,17 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const DATA_DIR = isServerless ? path.join('/tmp', 'data') : path.join(__dirname, '..', 'data');
 const SKINS_FILE = path.join(DATA_DIR, 'player_skins.json');
 
-// Đảm bảo thư mục data tồn tại
-if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+// Đảm bảo thư mục data tồn tại an toàn, không sập serverless
+try {
+    if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+} catch (e) {
+    console.warn('[skinStore] Cannot create data dir:', e.message);
 }
 
 // Bảng màu mặc định tự nhiên chuẩn 10 vùng cho từng loài The Isle
