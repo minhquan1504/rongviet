@@ -6,12 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "serve": "node server.js",
-    "dev": "node server.js",
-    "sync": "python sync_api.py"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-session": "^1.18.1"
+    "dev": "node server.js"
   }
 }

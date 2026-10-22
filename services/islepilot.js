@@ -154,12 +154,15 @@ async function getPlayerGarage(steamId) {
                 slots: slots.map((s, idx) => {
                     const species = skinStore.normalizeSpecies(s.species || s.dino || 'Spinosaurus');
                     const savedSkin = skinStore.getSkin(steamId, species) || {};
+                    const colors = (s.colors && Object.keys(s.colors).length) ? { ...s.colors } : { ...(savedSkin.colors || {}) };
+                    if (colors.markings && !colors.pattern) colors.pattern = colors.markings;
+                    if (colors.pattern && !colors.markings) colors.markings = colors.pattern;
                     return {
                         slot: s.slot || idx + 1,
                         species: species,
                         female: !!s.female,
                         growth: typeof s.growth === 'number' ? s.growth : 1.0,
-                        colors: s.colors && Object.keys(s.colors).length ? s.colors : (savedSkin.colors || {}),
+                        colors: colors,
                         skin: s.skin || savedSkin.skin || { variation: 0, pattern: 1, theme: 0 }
                     };
                 })

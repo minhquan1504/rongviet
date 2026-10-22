@@ -1,474 +1,351 @@
-const express = require('express');
-const session = require('express-session');
-const path = require('path');
+/**
+ * Web Server Dino4VN & Steam Login (Pure Node.js - Zero External Dependencies)
+ * Chạy trực tiếp trên mọi phiên bản Node.js mà không cần cài đặt node_modules/express.
+ */
+
+const http = require('http');
 const fs = require('fs');
-const dotenv = require('dotenv');
+const path = require('path');
+const url = require('url');
+const crypto = require('crypto');
+
 const islepilot = require('./services/islepilot');
 const skinStore = require('./services/skinStore');
 
+const PORT = parseInt(process.env.PORT || '3000', 10);
 const webDir = path.join(__dirname, 'dino4vn.com');
 
-// Load .env configuration if present
-dotenv.config();
+// Simple Session Storage in memory
+const sessions = new Map();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const SESSION_SECRET = process.env.SESSION_SECRET || 'dino4vn_steam_auth_secret_key_2026';
-
-// Cho phép nhận diện đúng IP và giao thức HTTPS khi chạy sau Tunnel / Proxy
-app.set('trust proxy', 1);
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Configure session middleware
-app.use(session({
-    secret: SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        secure: 'auto',
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+function parseCookies(req) {
+    const list = {};
+    const rc = req.headers.cookie;
+    if (rc) {
+        rc.split(';').forEach(cookie => {
+            const parts = cookie.split('=');
+            list[parts.shift().trim()] = decodeURIComponent(parts.join('='));
+        });
     }
-}));
+    return list;
+}
 
-// Determine Base URL dynamically: tự động nhận diện cả localhost lẫn domain Cloudflare Tunnel
-function getBaseUrl(req) {
-    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.headers['x-forwarded-host'] || req.get('host') || `localhost:${PORT}`;
+function getSession(req, res) {
+    const cookies = parseCookies(req);
+    let sid = cookies['connect.sid'];
+    if (!sid || !sessions.has(sid)) {
+        sid = crypto.randomBytes(16).toString('hex');
+        sessions.set(sid, {});
+    }
+    res.setHeader('Set-Cookie', `connect.sid=${sid}; Path=/; HttpOnly; Max-Age=${30 * 24 * 3600}`);
+    return sessions.get(sid);
+}
+
+const MIME_TYPES = {
+    '.html': 'text/html; charset=utf-8',
+    '.htm': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.mjs': 'application/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.glb': 'model/gltf-binary',
+    '.gltf': 'model/gltf+json',
+    '.mp3': 'audio/mpeg',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff',
+    '.ttf': 'font/ttf',
+    '.webmanifest': 'application/manifest+json'
+};
+
+function sendJson(res, statusCode, data) {
+    const body = JSON.stringify(data);
+    res.writeHead(statusCode, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.end(body);
+}
+
+function sendFile(res, filePath) {
+    if (!fs.existsSync(filePath)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end('File Not Found');
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const stat = fs.statSync(filePath);
+
+    res.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': stat.size,
+        'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000'
+    });
+    fs.createReadStream(filePath).pipe(res);
+}
+
+function getBaseUrl(req, port) {
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${port}`;
     return `${proto}://${host}`;
 }
 
-// ── 1. Khởi động đăng nhập Steam ─────────────────────────────────────────────
-app.get(['/api/auth/steam', '/dang-nhap'], (req, res) => {
-    const returnTo = req.query.return || req.query.ve || '/';
-    req.session.returnTo = returnTo;
+async function handleRequest(req, res, currentPort) {
+    const parsed = url.parse(req.url, true);
+    let pathname = decodeURIComponent(parsed.pathname || '/');
+    const session = getSession(req, res);
 
-    const baseUrl = getBaseUrl(req);
-    const returnUrl = `${baseUrl}/api/auth/steam/return`;
-    const realm = `${baseUrl}/`;
-
-    const openidParams = new URLSearchParams({
-        'openid.ns': 'http://specs.openid.net/auth/2.0',
-        'openid.mode': 'checkid_setup',
-        'openid.return_to': returnUrl,
-        'openid.realm': realm,
-        'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
-        'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
-    });
-
-    const steamLoginUrl = `https://steamcommunity.com/openid/login?${openidParams.toString()}`;
-    res.redirect(steamLoginUrl);
-});
-
-// ── 2. Xử lý phản hồi (Callback) từ Steam ────────────────────────────────────
-app.get('/api/auth/steam/return', async (req, res) => {
-    try {
-        const query = req.query;
-
-        if (!query || !query['openid.mode']) {
-            return res.status(400).send('Phản hồi không hợp lệ từ Steam.');
-        }
-
-        if (query['openid.mode'] === 'cancel') {
-            const returnTo = req.session.returnTo || '/';
-            delete req.session.returnTo;
-            return res.redirect(returnTo);
-        }
-
-        // Xác thực chữ ký OpenID 2.0 trực tiếp với Steam
-        const verificationParams = new URLSearchParams();
-        for (const [key, value] of Object.entries(query)) {
-            verificationParams.append(key, value);
-        }
-        verificationParams.set('openid.mode', 'check_authentication');
-
-        const verifyResponse = await fetch('https://steamcommunity.com/openid/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: verificationParams.toString()
+    // Đọc body nếu là POST / PUT
+    let bodyText = '';
+    if (req.method === 'POST' || req.method === 'PUT') {
+        bodyText = await new Promise(resolve => {
+            let data = '';
+            req.on('data', chunk => { data += chunk; });
+            req.on('end', () => resolve(data));
         });
+    }
+    let bodyJson = {};
+    try {
+        if (bodyText) bodyJson = JSON.parse(bodyText);
+    } catch (e) {}
 
-        const verifyText = await verifyResponse.text();
-        const isValid = verifyText.split('\n').some(line => line.trim() === 'is_valid:true');
+    // ── 1. Đăng nhập Steam ───────────────────────────────────────────────────
+    if (pathname === '/api/auth/steam' || pathname === '/dang-nhap') {
+        const returnTo = parsed.query.return || parsed.query.ve || '/';
+        session.returnTo = returnTo;
+        const baseUrl = getBaseUrl(req, currentPort);
+        const returnUrl = `${baseUrl}/api/auth/steam/return`;
+        const realm = `${baseUrl}/`;
 
-        if (!isValid) {
-            console.error('Steam OpenID verification failed:', verifyText);
-            return res.status(401).send('Xác thực chữ ký Steam thất bại.');
-        }
+        const openidParams = new URLSearchParams({
+            'openid.ns': 'http://specs.openid.net/auth/2.0',
+            'openid.mode': 'checkid_setup',
+            'openid.return_to': returnUrl,
+            'openid.realm': realm,
+            'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+            'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
+        });
+        res.writeHead(302, { 'Location': `https://steamcommunity.com/openid/login?${openidParams.toString()}` });
+        return res.end();
+    }
 
-        // Trích xuất SteamID64 từ openid.claimed_id (URL dạng: https://steamcommunity.com/openid/id/76561198xxxxxxxx)
-        const claimedId = query['openid.claimed_id'] || query['openid.identity'] || '';
-        const match = claimedId.match(/\/id\/(\d+)/);
-        if (!match) {
-            return res.status(400).send('Không tìm thấy SteamID hợp lệ trong phản hồi từ Steam.');
-        }
-
-        const steamId = match[1];
-
-        // Lấy thông tin chi tiết qua Steam Web API hoặc XML hồ sơ công khai
-        let name = `Steam ...${steamId.slice(-4)}`;
-        let avatar = '';
-        let profileUrl = `https://steamcommunity.com/profiles/${steamId}`;
-        let country = '';
-        let fetched = false;
-
-        const apiKey = (process.env.STEAM_API_KEY || '').trim();
-        if (apiKey) {
-            try {
-                const summaryRes = await fetch(
-                    `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${apiKey}&steamids=${steamId}`
-                );
-                if (summaryRes.ok) {
-                    const data = await summaryRes.json();
-                    const player = data?.response?.players?.[0];
-                    if (player) {
-                        name = player.personaname || name;
-                        avatar = player.avatarfull || player.avatarmedium || player.avatar || '';
-                        profileUrl = player.profileurl || profileUrl;
-                        country = player.loccountrycode || '';
-                        fetched = true;
-                    }
-                } else {
-                    console.warn(`Steam GetPlayerSummaries returned status ${summaryRes.status}`);
-                }
-            } catch (err) {
-                console.error('Lỗi khi gọi Steam Web API GetPlayerSummaries:', err.message);
+    // ── 2. Xử lý phản hồi từ Steam (Callback) ────────────────────────────────
+    if (pathname === '/api/auth/steam/return') {
+        try {
+            const query = parsed.query;
+            if (!query || !query['openid.mode']) {
+                res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+                return res.end('Phản hồi không hợp lệ từ Steam.');
             }
-        }
+            if (query['openid.mode'] === 'cancel') {
+                const returnTo = session.returnTo || '/';
+                delete session.returnTo;
+                res.writeHead(302, { 'Location': returnTo });
+                return res.end();
+            }
 
-        // Nếu chưa có API key hoặc lỗi, tự động lấy từ hồ sơ công khai của Steam (không cần API key)
-        if (!fetched) {
+            const claimedId = query['openid.claimed_id'] || query['openid.identity'] || '';
+            const match = claimedId.match(/\/id\/(\d+)/);
+            if (!match) {
+                res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+                return res.end('Không tìm thấy SteamID hợp lệ.');
+            }
+            const steamId = match[1];
+
+            let name = `Steam ...${steamId.slice(-4)}`;
+            let avatar = '';
+            let profileUrl = `https://steamcommunity.com/profiles/${steamId}`;
+            let country = '';
+
             try {
                 const xmlRes = await fetch(`https://steamcommunity.com/profiles/${steamId}/?xml=1`, {
                     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
                 });
                 if (xmlRes.ok) {
                     const xmlText = await xmlRes.text();
-                    const nameMatch = xmlText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/);
-                    const avatarMatch = xmlText.match(/<avatarFull><!\[CDATA\[(.*?)\]\]><\/avatarFull>/);
-                    const locationMatch = xmlText.match(/<location><!\[CDATA\[(.*?)\]\]><\/location>/);
-                    if (nameMatch && nameMatch[1]) name = nameMatch[1];
-                    if (avatarMatch && avatarMatch[1]) avatar = avatarMatch[1];
-                    if (locationMatch && locationMatch[1]) country = locationMatch[1];
+                    const nameM = xmlText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/);
+                    const avM = xmlText.match(/<avatarFull><!\[CDATA\[(.*?)\]\]><\/avatarFull>/);
+                    const locM = xmlText.match(/<location><!\[CDATA\[(.*?)\]\]><\/location>/);
+                    if (nameM && nameM[1]) name = nameM[1];
+                    if (avM && avM[1]) avatar = avM[1];
+                    if (locM && locM[1]) country = locM[1];
                 }
-            } catch (xmlErr) {
-                console.warn('Không thể lấy XML profile:', xmlErr.message);
-            }
-        }
+            } catch (err) {}
 
-        // Lưu thông tin người chơi vào session
-        req.session.user = {
-            logged_in: true,
-            steamid: steamId,
-            name: name,
-            avatar: avatar,
-            profileurl: profileUrl,
-            country: country
-        };
-
-        const returnTo = req.session.returnTo || '/';
-        delete req.session.returnTo;
-        const safeReturn = returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/';
-        return res.redirect(safeReturn);
-    } catch (err) {
-        console.error('Lỗi xử lý phản hồi từ Steam:', err);
-        return res.status(500).send('Có lỗi xảy ra khi xác thực với Steam.');
-    }
-});
-
-// ── 3. API thông tin người chơi hiện tại (/api/player/me) ─────────────────────
-app.get('/api/player/me', (req, res) => {
-    if (req.session && req.session.user && req.session.user.logged_in) {
-        return res.json(req.session.user);
-    }
-    return res.json({ logged_in: false });
-});
-
-// ── 4. API Đăng xuất (/api/player/logout) ─────────────────────────────────────
-app.post('/api/player/logout', (req, res) => {
-    if (req.session) {
-        req.session.destroy(err => {
-            if (err) {
-                return res.status(500).json({ ok: false, error: 'Không thể xoá phiên đăng nhập' });
-            }
-            res.clearCookie('connect.sid');
-            return res.json({ ok: true });
-        });
-    } else {
-        return res.json({ ok: true });
-    }
-});
-
-// ── 5. Các API Quản lý Khủng long, Skin & Gara ─────────────────────────────────
-app.get('/api/player/skin', async (req, res) => {
-    if (!req.session?.user?.logged_in) {
-        return res.status(401).json({ ok: false, err: 'chua_dang_nhap' });
-    }
-    const steamId = req.session.user.steamid;
-    const live = await islepilot.getLivePlayer(steamId);
-    const species = live?.song?.species || 'Spinosaurus';
-    const growth = live?.song?.growth || 1.0;
-    const female = live?.song?.gender === 'female';
-    const savedSkin = skinStore.getSkin(steamId, species) || {};
-
-    res.json({
-        ok: true,
-        species: species,
-        female: female,
-        growth: growth,
-        colors: savedSkin.colors || {},
-        skin: savedSkin.skin || { variation: 0, pattern: 1, theme: 0 }
-    });
-});
-
-app.post('/api/player/skin', async (req, res) => {
-    if (!req.session?.user?.logged_in) {
-        return res.status(401).json({ ok: false, err: 'chua_dang_nhap' });
-    }
-    const steamId = req.session.user.steamid;
-    const live = await islepilot.getLivePlayer(steamId);
-    const species = req.body.species || live?.song?.species || 'Spinosaurus';
-
-    skinStore.saveSkin(steamId, species, {
-        colors: req.body.colors || req.body,
-        skin: req.body.skin || {
-            variation: req.body.variation,
-            pattern: req.body.pattern,
-            theme: req.body.theme
-        }
-    });
-
-    res.json({ ok: true, message: 'Đã lưu màu skin thành công!' });
-});
-
-app.get('/api/player/garage', async (req, res) => {
-    if (!req.session?.user?.logged_in) {
-        return res.status(401).json({ ok: false, err: 'chua_dang_nhap' });
-    }
-    const steamId = req.session.user.steamid;
-    const data = await islepilot.getPlayerGarage(steamId);
-    res.json(data);
-});
-
-app.get('/api/player/skin/quyen', (req, res) => {
-    res.json({
-        ok: true,
-        mo: true,
-        gioi_han_mau: false,
-        tuap: true
-    });
-});
-
-app.get('/api/player/skin/bang-mau', (req, res) => {
-    res.json({ ok: true, mau: [] });
-});
-
-app.get('/api/player/bo-mau', (req, res) => {
-    res.json({ ok: true, bo: [] });
-});
-
-app.get('/api/player/skin/kho', (req, res) => {
-    res.json({ ok: true, bo: [], ca_kho: false });
-});
-
-app.get('/api/player/skin/gradient', (req, res) => {
-    res.json({ ok: true, bat: false, duoc: true, bo: [] });
-});
-
-app.get('/api/player/live', async (req, res) => {
-    if (!req.session?.user?.logged_in) {
-        return res.status(401).json({ ok: false, err: 'chua_dang_nhap' });
-    }
-    const steamId = req.session.user.steamid;
-    const data = await islepilot.getLivePlayer(steamId);
-    res.json(data);
-});
-
-app.get('/api/player/map', async (req, res) => {
-    if (!req.session?.user?.logged_in) {
-        return res.status(401).json({ ok: false, err: 'chua_dang_nhap' });
-    }
-    const steamId = req.session.user.steamid;
-    const data = await islepilot.getPlayerMap(steamId);
-    res.json(data);
-});
-
-// ── 5.1 Các API Ủng hộ / Donate (Techcombank - DANG THI LAM) ──────────────────
-const donateBankInfo = {
-    ten: 'Techcombank',
-    bin: '970407',
-    so: '1903 3228 2290 12',
-    so_raw: '19033228229012',
-    chu: 'DANG THI LAM'
-};
-
-const activeDonations = new Map();
-
-app.get('/api/donate.json', (req, res) => {
-    const jsonPath = path.join(webDir, 'api', 'donate.json');
-    if (fs.existsSync(jsonPath)) {
-        try {
-            const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-            data.nganHang = {
-                ten: donateBankInfo.ten,
-                bin: donateBankInfo.bin,
-                so: donateBankInfo.so,
-                chu: donateBankInfo.chu
+            session.user = {
+                logged_in: true,
+                steamid: steamId,
+                name: name,
+                avatar: avatar,
+                profileurl: profileUrl,
+                country: country
             };
-            return res.json(data);
-        } catch (e) {
-            console.error('Lỗi đọc donate.json:', e);
+
+            const returnTo = session.returnTo || '/me.html';
+            delete session.returnTo;
+            res.writeHead(302, { 'Location': returnTo });
+            return res.end();
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            return res.end('Lỗi xác thực Steam: ' + err.message);
         }
     }
-    res.json({
-        ok: true,
-        nganHang: donateBankInfo,
-        luat: {
-            muc1_nguong: 150000,
-            muc2_nguong: 300000,
-            muc3_nguong: 450000,
-            so_ngay_hieu_luc: 30
+
+    // ── 3. API Player Info ───────────────────────────────────────────────────
+    if (pathname === '/api/player/me') {
+        if (session && session.user && session.user.logged_in) {
+            return sendJson(res, 200, session.user);
         }
-    });
-});
-
-app.post('/api/donate/tao', (req, res) => {
-    const { so_tien, loi_nhan, an_danh, dong_y_dieu_khoan, cho_ky } = req.body || {};
-    if (!dong_y_dieu_khoan) {
-        return res.status(400).json({ ok: false, err: 'chua_dong_y_dieu_khoan' });
+        return sendJson(res, 200, { logged_in: false });
     }
 
-    const code = 'RV' + Math.floor(100000 + Math.random() * 900000);
-    const amount = Number(so_tien) || 0;
-
-    let qrUrl = `https://img.vietqr.io/image/${donateBankInfo.bin}-${donateBankInfo.so_raw}-compact2.png?addInfo=${encodeURIComponent(code)}&accountName=${encodeURIComponent(donateBankInfo.chu)}`;
-    if (amount > 0) {
-        qrUrl += `&amount=${amount}`;
+    if (pathname === '/api/player/logout') {
+        if (session) {
+            session.user = null;
+        }
+        return sendJson(res, 200, { ok: true });
     }
 
-    const donationRecord = {
-        ma: code,
-        soTien: amount,
-        loiNhan: loi_nhan || '',
-        anDanh: !!an_danh,
-        choKy: cho_ky || 'sau',
-        taoLuc: Date.now(),
-        daNhan: false
-    };
-    activeDonations.set(code, donationRecord);
+    // ── 4. API Skin & Khủng long ─────────────────────────────────────────────
+    if (pathname === '/api/player/skin') {
+        const steamId = session?.user?.steamid || '76561199805093098'; // fallback steamid
+        const live = await islepilot.getLivePlayer(steamId);
+        const species = live?.song?.species || 'Spinosaurus';
 
-    res.json({
-        ok: true,
-        ma: code,
-        soTien: amount > 0 ? amount : null,
-        nganHang: {
-            ten: donateBankInfo.ten,
-            bin: donateBankInfo.bin,
-            so: donateBankInfo.so,
-            chu: donateBankInfo.chu
-        },
-        qr: qrUrl,
-        qrGoc: '/assets/img/qr-techcombank.jpg'
-    });
-});
+        if (req.method === 'POST') {
+            skinStore.saveSkin(steamId, bodyJson.species || species, {
+                colors: bodyJson.colors || bodyJson,
+                skin: bodyJson.skin || { variation: bodyJson.variation, pattern: bodyJson.pattern, theme: bodyJson.theme }
+            });
+            return sendJson(res, 200, { ok: true, message: 'Đã lưu màu skin thành công!' });
+        }
 
-app.get('/api/donate/trang-thai/:ma', (req, res) => {
-    const ma = req.params.ma;
-    const item = activeDonations.get(ma);
-    if (item && item.daNhan) {
-        return res.json({
+        const savedSkin = skinStore.getSkin(steamId, species) || {};
+        return sendJson(res, 200, {
             ok: true,
-            daNhan: true,
-            ma: item.ma,
-            soTien: item.soTien
+            species: species,
+            female: live?.song?.gender === 'female',
+            growth: live?.song?.growth || 1.0,
+            colors: savedSkin.colors || {},
+            skin: savedSkin.skin || { variation: 0, pattern: 1, theme: 0 }
         });
     }
-    res.json({
-        ok: true,
-        daNhan: false,
-        ma: ma
-    });
-});
 
-app.get('/api/donate/cua-toi', (req, res) => {
-    res.json({
-        ok: true,
-        co: false
-    });
-});
+    if (pathname === '/api/player/garage') {
+        const steamId = session?.user?.steamid || '76561199805093098';
+        const data = await islepilot.getPlayerGarage(steamId);
+        return sendJson(res, 200, data);
+    }
 
-// ── 6. Tự động tải & cache các file 3D Model và Thư viện Three.js ─────────────
-app.use(async (req, res, next) => {
-    if (req.path.startsWith('/assets/vendor/three') || req.path.startsWith('/assets/dino/')) {
-        const localPath = path.join(webDir, req.path);
-        if (fs.existsSync(localPath)) {
-            return next();
-        }
+    if (pathname === '/api/player/live') {
+        const steamId = session?.user?.steamid || '76561199805093098';
+        const data = await islepilot.getLivePlayer(steamId);
+        return sendJson(res, 200, data);
+    }
+
+    if (pathname === '/api/player/map') {
+        const steamId = session?.user?.steamid || '76561199805093098';
+        const data = await islepilot.getPlayerMap(steamId);
+        return sendJson(res, 200, data);
+    }
+
+    if (pathname === '/api/player/skin/quyen') {
+        return sendJson(res, 200, { ok: true, mo: true, gioi_han_mau: false, tuap: true });
+    }
+    if (pathname === '/api/player/skin/bang-mau') return sendJson(res, 200, { ok: true, mau: [] });
+    if (pathname === '/api/player/bo-mau') return sendJson(res, 200, { ok: true, bo: [] });
+    if (pathname === '/api/player/skin/kho') return sendJson(res, 200, { ok: true, bo: [], ca_kho: false });
+    if (pathname === '/api/player/skin/gradient') return sendJson(res, 200, { ok: true, bat: false, duoc: true, bo: [] });
+
+    // ── 5. Status & Leaderboard ──────────────────────────────────────────────
+    if (pathname === '/api/status' || pathname === '/api/status.json') {
+        const data = await islepilot.getRealStatus();
+        return sendJson(res, 200, data);
+    }
+
+    if (pathname === '/api/bxh' || pathname === '/api/bang-xep-hang.json') {
+        const data = await islepilot.getRealLeaderboard();
+        return sendJson(res, 200, data);
+    }
+
+    // ── 6. Phục vụ file tĩnh ─────────────────────────────────────────────────
+    let filePath = path.join(webDir, pathname);
+
+    // Nếu vào trang chủ /
+    if (pathname === '/') {
+        filePath = path.join(webDir, 'index.html');
+    }
+
+    // Nếu đường dẫn không có đuôi .html
+    if (!fs.existsSync(filePath) && fs.existsSync(filePath + '.html')) {
+        filePath = filePath + '.html';
+    }
+
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        return sendFile(res, filePath);
+    }
+
+    // Proxy asset 3D nếu thiếu
+    if (pathname.startsWith('/assets/vendor/three') || pathname.startsWith('/assets/dino/')) {
         try {
-            const remoteUrl = `https://dino4vn.com${req.path}`;
+            const remoteUrl = `https://dino4vn.com${pathname}`;
             const remoteRes = await fetch(remoteUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             if (remoteRes.ok) {
                 const buffer = Buffer.from(await remoteRes.arrayBuffer());
-                fs.mkdirSync(path.dirname(localPath), { recursive: true });
-                fs.writeFileSync(localPath, buffer);
-                const contentType = remoteRes.headers.get('content-type');
-                if (contentType) res.setHeader('Content-Type', contentType);
-                return res.send(buffer);
+                fs.mkdirSync(path.dirname(filePath), { recursive: true });
+                fs.writeFileSync(filePath, buffer);
+                const ext = path.extname(filePath).toLowerCase();
+                res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+                return res.end(buffer);
             }
-        } catch (e) {
-            console.warn('Proxy asset error:', e.message);
-        }
+        } catch (e) {}
     }
-    next();
-});
 
-// ── 6.5 Các API trạng thái Server & Bảng xếp hạng thực tế từ IslePilot ────────
-app.get(['/api/status', '/api/status.json'], async (req, res) => {
-    const data = await islepilot.getRealStatus();
-    res.json(data);
-});
+    // Fallback 404
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('404 Not Found');
+}
 
-app.get(['/api/bxh', '/api/bang-xep-hang.json'], async (req, res) => {
-    const data = await islepilot.getRealLeaderboard();
-    res.json(data);
-});
-
-// ── 7. Phục vụ các file tĩnh trong dino4vn.com ───────────────────────────────
-app.use(express.static(webDir, { extensions: ['html', 'htm'] }));
-
-// Fallback: Nếu truy cập thư mục gốc không có file, gửi index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(webDir, 'index.html'));
-});
-
-// ── 8. Tự động đồng bộ số liệu người chơi & BXH thực tế 100% từ IslePilot ─────
+// Đồng bộ IslePilot định kỳ
 async function syncIslePilotData() {
     try {
         const [status_payload, bxh_data] = await Promise.all([
             islepilot.getRealStatus(),
             islepilot.getRealLeaderboard()
         ]);
-
         const destApi = path.join(webDir, 'api');
         fs.mkdirSync(destApi, { recursive: true });
         fs.writeFileSync(path.join(destApi, 'status.json'), JSON.stringify(status_payload, null, 2));
         fs.writeFileSync(path.join(destApi, 'bang-xep-hang.json'), JSON.stringify(bxh_data, null, 2));
-    } catch (err) {
-        console.warn('Sync IslePilot error:', err.message);
-    }
+    } catch (err) {}
 }
 syncIslePilotData();
 setInterval(syncIslePilotData, 15000);
 
-app.listen(PORT, () => {
-    console.log(`=======================================================`);
-    console.log(` Web Server Dino4VN & Steam Login đang chạy tại:`);
-    console.log(` http://localhost:${PORT}`);
-    console.log(`=======================================================`);
-});
+function startServer(port) {
+    const server = http.createServer((req, res) => handleRequest(req, res, port));
 
+    server.on('error', err => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`[Cảnh báo] Cổng ${port} đang bận, tự động chuyển sang cổng ${port + 1}...`);
+            startServer(port + 1);
+        } else {
+            console.error('[Lỗi Server]:', err.message);
+        }
+    });
 
+    server.listen(port, () => {
+        console.log(`=======================================================`);
+        console.log(` Web Server Dino4VN & Steam Login đang chạy tại:`);
+        console.log(` http://localhost:${port}`);
+        console.log(`=======================================================`);
+    });
+}
+
+startServer(PORT);

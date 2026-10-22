@@ -559,7 +559,7 @@ function apMau(root, mau, anhXa) {
     });
   });
   for (const khe of Object.keys(anhXa || {})) {
-    const hex = mau[khe];
+    const hex = mau[khe] || (khe === "markings" ? mau.pattern : (khe === "pattern" ? mau.markings : null));
     if (!hex) { thieu.push(khe); continue; }
     const dich = (anhXa[khe].materials || [])
       .map((n) => theoTen.get(String(n).toLowerCase().trim()))
@@ -682,14 +682,14 @@ function apMauMask(root, mau, maskTex, layerKhe, pbr) {
 /** Điền 8 ô màu của bảng tra từ bảng màu người dùng. Mutate TẠI CHỖ. */
 function napBang(bang, mau, layerKhe, dung) {
   // Ô 0 (nền) trước, vì các ô thiếu màu sẽ mượn lại chính nó.
-  const kheNen = (layerKhe || {}).base;
-  const hexNen = kheNen && mau[kheNen];
+  const kheNen = (layerKhe && layerKhe.base) || "body";
+  const hexNen = kheNen && (mau[kheNen] || (kheNen === "body" ? (mau.body || mau.base) : null));
   if (hexNen) { bang[0].setStyle(hexNen, THREE.SRGBColorSpace); if (dung) dung.add(kheNen); }
   else bang[0].setRGB(0.5, 0.5, 0.5, THREE.SRGBColorSpace);
 
   for (let i = 1; i < 8; i++) {
     const khe = (layerKhe || {})[MA[i]];
-    const hex = khe && mau[khe];
+    const hex = khe && (mau[khe] || (khe === "markings" ? mau.pattern : (khe === "pattern" ? mau.markings : (khe === "flank" ? (mau.flank || mau.body) : null))));
     if (hex) { bang[i].setStyle(hex, THREE.SRGBColorSpace); if (dung) dung.add(khe); }
     // Khe không có màu (vd người dùng chọn Cái nên bỏ `maleDisplay`) thì vùng đó
     // phải rơi về MÀU NỀN — đúng như trong game. Đổ xám là bịa ra một màu không
