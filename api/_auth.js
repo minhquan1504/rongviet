@@ -1,11 +1,11 @@
-﻿const crypto = require('crypto');
+const crypto = require('crypto');
 
 const SECRET = process.env.SESSION_SECRET || 'dino4vn_steam_auth_secret_key_2026';
 
 function sign(payload) {
     const data = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
     const sig = crypto.createHmac('sha256', SECRET).update(data).digest('base64url');
-    return ${data}.;
+    return `${data}.${sig}`;
 }
 
 function verify(token) {
@@ -39,7 +39,7 @@ function parseCookies(req) {
 function getBaseUrl(req) {
     const proto = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers['host'] || 'localhost:3000';
-    return ${proto}://System.Management.Automation.Internal.Host.InternalHost;
+    return `${proto}://${host}`;
 }
 
 function getSteamIdFromRequest(req) {
