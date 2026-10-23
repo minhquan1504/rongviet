@@ -319,7 +319,7 @@ async function getPlayerGarage(steamId) {
             };
         }
         if (!res.ok) {
-            return { ok: false, error: res.error || 'Không thể tải danh sách gara', slots: [] };
+            return { ok: false, error: res.error || 'Không thể tải danh sách gara', slots: [], quota: 3 };
         }
     } catch (err) {
         console.warn(`[IslePilot] Không thể tải gara cho SteamID ${steamId}:`, err.message);

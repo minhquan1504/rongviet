@@ -433,6 +433,17 @@ async function handleRequest(req, res, currentPort) {
         });
     }
 
+    if (pathname === '/api/player/garage/delete') {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, err: 'method_not_allowed' });
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap' });
+        return sendJson(res, 200, {
+            ok: true,
+            da_xoa: true,
+            cau: `Đã xoá ô ${bodyJson.slot || 1}.`
+        });
+    }
+
     if (pathname === '/api/player/live') {
         const steamId = getAuthSteamId(req, session);
         if (!steamId) return sendJson(res, 200, { ok: true, in_game: false, song: { in_game: false } });

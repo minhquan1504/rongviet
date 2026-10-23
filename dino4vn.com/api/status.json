@@ -4,14 +4,18 @@
   "server": "RONG VIET | X2 Growth | discord.gg/rvie",
   "server_display": "[VN] Rồng Việt",
   "online": true,
-  "players": 0,
+  "players": 1,
   "maxPlayers": 200,
   "max_players": 200,
   "queueLength": 0,
   "map": "Gateway",
-  "updatedAt": "2026-10-23T23:26:00.186Z",
-  "speciesLive": {},
-  "top_species": [],
+  "updatedAt": "2026-10-23T23:43:45.519Z",
+  "speciesLive": {
+    "Ankylosaurus": 1
+  },
+  "top_species": [
+    "Ankylosaurus"
+  ],
   "uptime_human": "Trực tuyến",
   "heartbeat_age_seconds": 3
 }

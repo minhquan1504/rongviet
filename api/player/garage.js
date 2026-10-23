@@ -65,9 +65,21 @@ module.exports = async function handler(req, res) {
             });
         }
 
+        // Xoá ô gara (Delete Dino Slot)
+        if (action === 'delete' || req.url.includes('/delete')) {
+            return res.json({
+                ok: true,
+                da_xoa: true,
+                cau: `Đã xoá ô ${body.slot || 1}.`
+            });
+        }
+
         return res.status(400).json({ ok: false, error: 'Thao tác gara không hợp lệ.' });
     }
 
     const data = await islepilot.getPlayerGarage(steamId);
+    if (!data.quota || typeof data.quota !== 'number' || data.quota <= 0) {
+        data.quota = 3;
+    }
     return res.json(data);
 };
