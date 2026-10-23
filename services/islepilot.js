@@ -17,7 +17,7 @@ function loadEnv() {
                     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
                         val = val.slice(1, -1);
                     }
-                    if (!process.env[key]) {
+                    if (val) {
                         process.env[key] = val;
                     }
                 }
@@ -27,8 +27,15 @@ function loadEnv() {
 }
 loadEnv();
 
-const ISLEPILOT_API_KEY = (process.env.ISLEPILOT_API_KEY || process.env.ISLEPILOT_KEY || '').trim();
-const ISLEPILOT_API_BASE_URL = (process.env.ISLEPILOT_API_BASE_URL || process.env.ISLEPILOT_URL || 'https://islepilot.eu/api/v1').trim().replace(/\/$/, '');
+function getApiKey() {
+    loadEnv();
+    return (process.env.ISLEPILOT_API_KEY || process.env.ISLEPILOT_KEY || '').trim();
+}
+
+function getBaseUrl() {
+    loadEnv();
+    return (process.env.ISLEPILOT_API_BASE_URL || process.env.ISLEPILOT_URL || 'https://islepilot.eu/api/v1').trim().replace(/\/$/, '');
+}
 
 const skinStore = require('./skinStore');
 
@@ -36,14 +43,16 @@ const skinStore = require('./skinStore');
  * Gọi API IslePilot v1 với đầy đủ phương thức HTTP, timeout và xử lý lỗi
  */
 async function requestIslePilot(endpoint, options = {}) {
-    if (!ISLEPILOT_API_KEY) {
+    const apiKey = getApiKey();
+    const baseUrl = getBaseUrl();
+    if (!apiKey) {
         return { ok: false, status: 500, error: 'Chưa cấu hình ISLEPILOT_API_KEY trong file .env' };
     }
 
     const method = options.method || 'GET';
-    const url = `${ISLEPILOT_API_BASE_URL}${endpoint}`;
+    const url = `${baseUrl}${endpoint}`;
     const headers = {
-        'Authorization': `Bearer ${ISLEPILOT_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'User-Agent': 'Dino4VN-RongViet-Web/2026',
         'Accept': 'application/json',
         ...(options.headers || {})
@@ -238,7 +247,10 @@ async function getPlayerGarage(steamId) {
     if (!steamId) return { ok: false, err: 'chua_dang_nhap', slots: [] };
 
     try {
-        const res = await requestIslePilot(`/players/${steamId}/garage`);
+        const [res, live] = await Promise.all([
+            requestIslePilot(`/players/${steamId}/garage`),
+            getLivePlayer(steamId).catch(() => null)
+        ]);
         const raw = res.data;
 
         if (res.ok && raw && (raw.garage || Array.isArray(raw))) {
@@ -246,6 +258,7 @@ async function getPlayerGarage(steamId) {
             return {
                 ok: true,
                 quota: typeof raw.quota === 'number' ? raw.quota : 3,
+                active: (live && live.in_game) ? live.song : null,
                 slots: rawSlots.map((s, idx) => {
                     const species = skinStore.normalizeSpecies(s.species || s.dino || 'Spinosaurus');
                     const savedSkin = skinStore.getSkin(steamId, species) || {};
@@ -264,6 +277,14 @@ async function getPlayerGarage(steamId) {
                     const thirst = typeof s.thirst === 'number' ? s.thirst : 1.0;
                     const stamina = typeof s.stamina === 'number' ? s.stamina : 1.0;
 
+                    const mutationsList = Array.isArray(s.mutations) ? s.mutations.filter(m => m && m !== 'None') : [];
+                    const dot_bien = mutationsList.length ? [
+                        {
+                            nhan: "Đột biến",
+                            ten: mutationsList.map(m => ({ ten: m, vi: m }))
+                        }
+                    ] : null;
+
                     return {
                         id: s.id || `slot-${idx + 1}`,
                         slot: s.slot || (idx + 1),
@@ -276,15 +297,22 @@ async function getPlayerGarage(steamId) {
                         thirst: thirst,
                         stamina: stamina,
                         isPrimeElder: !!s.isPrimeElder,
-                        mutations: Array.isArray(s.mutations) ? s.mutations : [],
+                        mutations: mutationsList,
+                        dot_bien: dot_bien,
                         stored_at: storedAt,
                         colors: colors,
                         skin: s.skin || savedSkin.skin || { variation: 0, pattern: 1, theme: 0 },
                         vitals: {
-                            health: health,
-                            hunger: hunger,
-                            thirst: thirst,
-                            stamina: stamina
+                            health: Math.round(health * 100),
+                            stamina: Math.round(stamina * 100),
+                            hunger: Math.round(hunger * 100),
+                            thirst: Math.round(thirst * 100)
+                        },
+                        vitals_max: {
+                            health: 100,
+                            stamina: 100,
+                            hunger: 100,
+                            thirst: 100
                         }
                     };
                 })
@@ -309,6 +337,16 @@ async function getPlayerGarage(steamId) {
  */
 async function parkDino(steamId) {
     if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    try {
+        const live = await getLivePlayer(steamId);
+        if (live?.song?.species && live?.song?.colors) {
+            skinStore.saveSkin(steamId, live.song.species, {
+                colors: live.song.colors,
+                skin: live.song.skin
+            });
+        }
+    } catch (e) {}
+
     return await requestIslePilot(`/players/${steamId}/garage/park`, {
         method: 'POST',
         body: {}
@@ -342,12 +380,32 @@ async function getPlayerSkins(steamId) {
 
 /**
  * 3.4. Áp dụng skin tùy chỉnh trực tiếp vào game (POST /players/{steamId}/skin/apply)
+ * Định dạng tài liệu IslePilot: { "payload": { ... } }
  */
 async function applyPlayerSkin(steamId, payload) {
     if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    const wrappedBody = (payload && typeof payload === 'object' && ('payload' in payload))
+        ? payload
+        : { payload: payload };
     return await requestIslePilot(`/players/${steamId}/skin/apply`, {
         method: 'POST',
-        body: payload
+        body: wrappedBody
+    });
+}
+
+/**
+ * 3.4b. Thao tác Skin Editor trực tiếp với Palette (POST /players/{steamId}/skin-editor/action)
+ * Định dạng tài liệu IslePilot: { "op": "apply", "palette": { "body": "#000000" } }
+ * Lưu ý: Yêu cầu quyền skintokens:write trên API Key và bật tính năng Token Skin Editor trên máy chủ.
+ */
+async function applySkinEditorAction(steamId, palette, op = 'apply') {
+    if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    return await requestIslePilot(`/players/${steamId}/skin-editor/action`, {
+        method: 'POST',
+        body: {
+            op: op,
+            palette: palette
+        }
     });
 }
 
@@ -533,10 +591,12 @@ async function getRealLeaderboard() {
 }
 
 module.exports = {
-    ISLEPILOT_API_KEY,
-    ISLEPILOT_API_BASE_URL,
-    ISLEPILOT_KEY: ISLEPILOT_API_KEY,
-    ISLEPILOT_URL: ISLEPILOT_API_BASE_URL,
+    get ISLEPILOT_API_KEY() { return getApiKey(); },
+    get ISLEPILOT_API_BASE_URL() { return getBaseUrl(); },
+    get ISLEPILOT_KEY() { return getApiKey(); },
+    get ISLEPILOT_URL() { return getBaseUrl(); },
+    getApiKey,
+    getBaseUrl,
     requestIslePilot,
     getLivePlayer,
     getPlayerMap,
@@ -545,6 +605,7 @@ module.exports = {
     restoreDino,
     getPlayerSkins,
     applyPlayerSkin,
+    applySkinEditorAction,
     applyPlayerSkinPreset,
     getShopSkins,
     getRealStatus,

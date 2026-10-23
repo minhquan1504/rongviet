@@ -1844,9 +1844,13 @@ body.la-bando .chay { flex: 0 0 auto; }
                     margin: 0; }
 .v3d--o[data-state="ready"] .v3d__msg { display: none; }
 
-/* Đếm ngược 30 giây. Không phải trang trí: người chơi phải ĐỨNG YÊN trong lúc này,
-   nên dòng chữ phải đủ nổi để không bị bỏ qua giữa một trang nhiều chữ. */
 .dem { color: var(--da-voi); font-weight: 800; margin: 12px 0 0; }
+
+/* Ô trống trong gara */
+.dino--trong { border: 1px dashed var(--duong-ke-sang); background: rgba(19, 30, 39, 0.4); }
+.v3d--trong { display: flex; align-items: center; justify-content: center; height: 190px; background: rgba(0, 0, 0, 0.2); }
+.v3d__msg--trong { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; width: 100%; }
+.v3d__icon--trong { font-size: 2rem; opacity: 0.7; }
 
 /* Tiến độ vùng, gắn sau nhãn điều kiện 5 và 6 trên /me.
    Mờ hơn nhãn chính: nó là số phụ trợ, không được đọc trước chính điều kiện. */

@@ -102,13 +102,22 @@ module.exports = async function handler(req, res) {
         const sessionToken = sign(userPayload);
 
         const cookies = parseCookies(req);
+        const deviceCode = cookies['dino4vn_device_code'] ? decodeURIComponent(cookies['dino4vn_device_code']) : null;
+        if (deviceCode) {
+            try {
+                const overlayAuth = require('../../services/overlayAuth');
+                overlayAuth.completeSession(deviceCode, steamId, sessionToken);
+            } catch (e) {}
+        }
+
         const returnTo = cookies['dino4vn_return_to'] ? decodeURIComponent(cookies['dino4vn_return_to']) : '/me';
         const safeReturn = returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/me';
 
         const cookieSession = `dino4vn_steam_session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000; Secure`;
         const cookieClear = `dino4vn_return_to=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`;
+        const cookieClearDev = `dino4vn_device_code=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`;
 
-        res.setHeader('Set-Cookie', [cookieSession, cookieClear]);
+        res.setHeader('Set-Cookie', [cookieSession, cookieClear, cookieClearDev]);
         res.writeHead(302, { Location: safeReturn });
         res.end();
     } catch (err) {

@@ -1,0 +1,34 @@
+{
+  "76561198733595923": {
+    "stegosaurus": {
+      "species": "Stegosaurus",
+      "colors": {
+        "body": "#ff0000"
+      },
+      "skin": {
+        "variation": 1
+      },
+      "updatedAt": "2026-10-23T14:37:53.140Z"
+    }
+  },
+  "76561199805093098": {
+    "stegosaurus": {
+      "species": "Stegosaurus",
+      "colors": {
+        "body": "#8a091e",
+        "flank": "#4a154b",
+        "underbelly": "#376881",
+        "markings": "#4f724b",
+        "maleDisplay": "#252a23",
+        "detail1": "#014c73",
+        "teeth": "#462093",
+        "mouth": "#87f448",
+        "claws": "#216e2f",
+        "eyes": "#704160",
+        "pattern": "#4f724b"
+      },
+      "skin": {},
+      "updatedAt": "2026-10-23T16:17:38.382Z"
+    }
+  }
+}

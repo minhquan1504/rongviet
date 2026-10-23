@@ -17,7 +17,14 @@ module.exports = function handler(req, res) {
 
     const steamLoginUrl = `https://steamcommunity.com/openid/login?${openidParams.toString()}`;
 
-    res.setHeader('Set-Cookie', `dino4vn_return_to=${encodeURIComponent(returnTo)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600; Secure`);
+    const cookiesToSet = [
+        `dino4vn_return_to=${encodeURIComponent(returnTo)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600; Secure`
+    ];
+    if (req.query.device_code) {
+        cookiesToSet.push(`dino4vn_device_code=${encodeURIComponent(req.query.device_code)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600; Secure`);
+    }
+
+    res.setHeader('Set-Cookie', cookiesToSet);
     res.writeHead(302, { Location: steamLoginUrl });
     res.end();
 };

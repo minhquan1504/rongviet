@@ -25,7 +25,7 @@ function loadEnv() {
                     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
                         val = val.slice(1, -1);
                     }
-                    if (!process.env[key]) {
+                    if (val) {
                         process.env[key] = val;
                     }
                 }
@@ -37,6 +37,7 @@ loadEnv();
 
 const islepilot = require('./services/islepilot');
 const skinStore = require('./services/skinStore');
+const overlayAuth = require('./services/overlayAuth');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const webDir = path.join(__dirname, 'dino4vn.com');
@@ -162,6 +163,9 @@ async function handleRequest(req, res, currentPort) {
     if (pathname === '/api/auth/steam' || pathname === '/dang-nhap') {
         const returnTo = parsed.query.return || parsed.query.ve || '/';
         session.returnTo = returnTo;
+        if (parsed.query.device_code) {
+            session.deviceCode = parsed.query.device_code;
+        }
         const baseUrl = getBaseUrl(req, currentPort);
         const returnUrl = `${baseUrl}/api/auth/steam/return`;
         const realm = `${baseUrl}/`;
@@ -230,6 +234,11 @@ async function handleRequest(req, res, currentPort) {
                 country: country
             };
 
+            if (session.deviceCode) {
+                overlayAuth.completeSession(session.deviceCode, steamId, sid);
+                delete session.deviceCode;
+            }
+
             const returnTo = session.returnTo || '/me.html';
             delete session.returnTo;
             res.writeHead(302, { 'Location': returnTo });
@@ -267,18 +276,32 @@ async function handleRequest(req, res, currentPort) {
 
         if (req.method === 'POST') {
             // 1. Luôn lưu vào kho skin cục bộ để bảo toàn tùy chỉnh người chơi
+            // Tách các khe màu hợp lệ cho palette chuẩn The Isle Evrima
+            const palette = {};
+            const knownSlots = ['body', 'flank', 'underbelly', 'markings', 'maleDisplay', 'detail1', 'teeth', 'mouth', 'claws', 'eyes', 'pattern'];
+            for (const slot of knownSlots) {
+                if (bodyJson[slot] && typeof bodyJson[slot] === 'string') {
+                    palette[slot] = bodyJson[slot];
+                } else if (bodyJson.colors && bodyJson.colors[slot]) {
+                    palette[slot] = bodyJson.colors[slot];
+                }
+            }
+
+            // 1. Luôn lưu vào kho skin cục bộ để bảo toàn tùy chỉnh người chơi
             skinStore.saveSkin(steamId, bodyJson.species || species, {
-                colors: bodyJson.colors || bodyJson,
+                colors: Object.keys(palette).length > 0 ? palette : (bodyJson.colors || bodyJson),
                 skin: bodyJson.skin || { variation: bodyJson.variation, pattern: bodyJson.pattern, theme: bodyJson.theme }
             });
 
-            // 2. Tích hợp gửi sang IslePilot API
+            // 2. Tích hợp gửi sang IslePilot API (Live Skin Editor & Presets)
             let pilotResult = null;
             if (bodyJson.presetId) {
                 // Áp dụng skin preset đã sở hữu
                 pilotResult = await islepilot.applyPlayerSkinPreset(steamId, bodyJson.presetId);
+            } else if (Object.keys(palette).length > 0) {
+                // Áp dụng màu trực tiếp qua Live Skin Editor của IslePilot
+                pilotResult = await islepilot.applySkinEditorAction(steamId, palette, 'apply');
             } else {
-                // Áp dụng skin tùy chỉnh trực tiếp
                 pilotResult = await islepilot.applyPlayerSkin(steamId, bodyJson);
             }
 
@@ -288,12 +311,16 @@ async function handleRequest(req, res, currentPort) {
                     message: 'Đã áp dụng màu skin vào game thành công!'
                 });
             } else {
-                // Trả về chính xác thông báo lỗi từ IslePilot để giao diện thông báo thật cho người chơi
-                const errMsg = pilotResult?.error || 'Chưa thể áp màu vào game.';
+                // Xử lý thông báo lỗi chuẩn xác và an toàn cho người chơi
+                let errMsg = pilotResult?.error || 'Chưa thể áp màu vào game.';
+                if (errMsg === 'Invalid skin payload.') {
+                    errMsg = 'IslePilot báo định dạng skin chưa tương thích (Invalid skin payload). Màu đã được lưu an toàn trên web.';
+                }
                 return sendJson(res, 200, {
                     ok: false,
                     res: errMsg,
-                    localSaved: true
+                    localSaved: true,
+                    rawError: pilotResult?.error
                 });
             }
         }
@@ -327,6 +354,22 @@ async function handleRequest(req, res, currentPort) {
     }
 
     // ── 4.1. Gara Khủng long ─────────────────────────────────────────────────
+    if (pathname === '/api/player/overlay/auth/start') {
+        const baseUrl = getBaseUrl(req, currentPort);
+        const data = overlayAuth.startSession(baseUrl);
+        return sendJson(res, 200, data);
+    }
+
+    if (pathname === '/api/player/overlay/auth/poll') {
+        const deviceCode = bodyJson.ma_thiet_bi || parsed.query.ma_thiet_bi;
+        const secret = bodyJson.bi_mat || parsed.query.bi_mat;
+        if (!deviceCode || !secret) {
+            return sendJson(res, 400, { trang_thai: 'thieu_tham_so' });
+        }
+        const data = overlayAuth.pollSession(deviceCode, secret);
+        return sendJson(res, 200, data);
+    }
+
     if (pathname === '/api/player/garage') {
         const steamId = getAuthSteamId(req, session);
         if (!steamId) return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap', slots: [] });

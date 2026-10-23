@@ -753,29 +753,72 @@
     return the;
   }
 
+  function veTheTrong(slotNum) {
+    var the = el("article", "dino dino--3d dino--trong");
+
+    var khung = el("div", "v3d v3d--o v3d--trong");
+    var san = el("div", "v3d__san");
+    var msg = el("div", "v3d__msg--trong");
+    msg.appendChild(el("span", "v3d__icon--trong", "🏕️"));
+    msg.appendChild(el("p", "dim", "Ô số " + slotNum + " đang trống"));
+    san.appendChild(msg);
+    khung.appendChild(san);
+    the.appendChild(khung);
+
+    var than = el("div", "dino__than");
+    var top = el("div", "dino__top");
+    top.appendChild(el("h3", "dino__ten", "Ô " + slotNum + " — Trống"));
+    top.appendChild(el("span", "dino__o", "Ô " + slotNum));
+    than.appendChild(top);
+
+    than.appendChild(el("p", "dino__meta", "Chưa có khủng long nào. Sẵn sàng để cất."));
+
+    var nut = el("div", "dino__nut");
+    var bCat = el("button", "act", "Cất vào ô " + slotNum);
+    bCat.addEventListener("click", function () {
+      catVao(slotNum, bCat);
+    });
+    nut.appendChild(bCat);
+    than.appendChild(nut);
+
+    the.appendChild(than);
+    return the;
+  }
+
   function veDanhSach(slots, quota) {
     var boc = $("gara-danhsach"), dem = $("gara-dem");
     if (!boc) return;
     donBoXem();                       // trả lại WebGL context của lần vẽ trước
     boc.textContent = "";
 
+    var q = (typeof quota === "number" && quota > 0) ? quota : 3;
     var n = (slots || []).length;
     if (dem) {
-      // 🔴 "25/3 ô" đọc như một lỗi hiển thị chứ không như một trạng thái. Khi số con
-      //    VƯỢT hạn mức thì viết thành câu, đừng viết thành phân số.
-      dem.textContent = (typeof quota !== "number" || quota < 0) ? (n + " ô")
-        : (n <= quota ? (n + "/" + quota + " ô")
-                      : (n + " con · bạn có " + quota + " ô"));
+      dem.textContent = "· Đã dùng " + n + "/" + q + " ô (Còn trống " + Math.max(0, q - n) + " ô)";
     }
 
-    if (!n) {
-      boc.appendChild(el("p", "dim",
-        "Gara của bạn đang trống. Cất con đang chơi ở khối trên, hoặc vào game gõ !gui."));
-      return;
-    }
     var luoi = el("div", "kho__luoi");
-    slots.slice().sort(function (a, b) { return (a.slot || 0) - (b.slot || 0); })
-         .forEach(function (d) { luoi.appendChild(veThe(d, quota)); });
+
+    var slotMap = {};
+    (slots || []).forEach(function (d) {
+      var sNum = (typeof d.slot === "number" && d.slot > 0) ? d.slot : null;
+      if (sNum) slotMap[sNum] = d;
+    });
+
+    for (var j = 1; j <= q; j++) {
+      if (slotMap[j]) {
+        luoi.appendChild(veThe(slotMap[j], q));
+      } else {
+        luoi.appendChild(veTheTrong(j));
+      }
+    }
+
+    (slots || []).forEach(function (d) {
+      if (d.slot > q) {
+        luoi.appendChild(veThe(d, q));
+      }
+    });
+
     boc.appendChild(luoi);
   }
 
