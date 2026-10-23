@@ -104,6 +104,7 @@ const MIME_TYPES = {
     '.woff2': 'font/woff2',
     '.woff': 'font/woff',
     '.ttf': 'font/ttf',
+    '.wasm': 'application/wasm',
     '.webmanifest': 'application/manifest+json'
 };
 

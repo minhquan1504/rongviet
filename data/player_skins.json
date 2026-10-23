@@ -15,20 +15,20 @@
     "stegosaurus": {
       "species": "Stegosaurus",
       "colors": {
-        "body": "#8a091e",
-        "flank": "#4a154b",
-        "underbelly": "#376881",
-        "markings": "#4f724b",
-        "maleDisplay": "#252a23",
-        "detail1": "#014c73",
-        "teeth": "#462093",
-        "mouth": "#87f448",
-        "claws": "#216e2f",
-        "eyes": "#704160",
-        "pattern": "#4f724b"
+        "body": "#919b8d",
+        "flank": "#eba458",
+        "underbelly": "#cbdbed",
+        "markings": "#88d5ac",
+        "maleDisplay": "#015725",
+        "detail1": "#7be19d",
+        "teeth": "#3c1ef9",
+        "mouth": "#cb30b3",
+        "claws": "#85c453",
+        "eyes": "#9eec8e",
+        "pattern": "#88d5ac"
       },
       "skin": {},
-      "updatedAt": "2026-10-23T16:17:38.382Z"
+      "updatedAt": "2026-10-23T23:11:12.910Z"
     }
   }
 }
