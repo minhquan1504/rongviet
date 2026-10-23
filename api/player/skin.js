@@ -8,6 +8,24 @@ module.exports = async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    // Hỗ trợ các route danh mục màu và quyền hạn tương thích frontend
+    const action = req.query?.action || (req.url ? req.url.split('/').pop().split('?')[0] : '');
+    if (action === 'quyen') {
+        return res.json({ ok: true, mo: true, gioi_han_mau: false, tuap: true });
+    }
+    if (action === 'bang-mau') {
+        return res.json({ ok: true, mau: [] });
+    }
+    if (action === 'bo-mau') {
+        return res.json({ ok: true, bo: [] });
+    }
+    if (action === 'kho') {
+        return res.json({ ok: true, bo: [], ca_kho: false });
+    }
+    if (action === 'gradient') {
+        return res.json({ ok: true, bat: false, duoc: true, bo: [] });
+    }
+
     const steamId = getSteamIdFromRequest(req);
     if (!steamId) {
         return res.status(401).json({ ok: false, err: 'chua_dang_nhap' });

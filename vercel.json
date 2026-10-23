@@ -26,6 +26,30 @@
     {
       "source": "/api/bang-xep-hang.json",
       "destination": "/api/bxh"
+    },
+    {
+      "source": "/api/player/garage/:action*",
+      "destination": "/api/player/garage"
+    },
+    {
+      "source": "/api/player/skin/quyen",
+      "destination": "/api/player/skin?action=quyen"
+    },
+    {
+      "source": "/api/player/skin/bang-mau",
+      "destination": "/api/player/skin?action=bang-mau"
+    },
+    {
+      "source": "/api/player/skin/kho",
+      "destination": "/api/player/skin?action=kho"
+    },
+    {
+      "source": "/api/player/skin/gradient",
+      "destination": "/api/player/skin?action=gradient"
+    },
+    {
+      "source": "/api/player/bo-mau",
+      "destination": "/api/player/skin?action=bo-mau"
     }
   ],
   "headers": [
