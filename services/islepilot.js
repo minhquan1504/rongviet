@@ -29,7 +29,7 @@ loadEnv();
 
 function getApiKey() {
     loadEnv();
-    return (process.env.ISLEPILOT_API_KEY || process.env.ISLEPILOT_KEY || '').trim();
+    return (process.env.ISLEPILOT_API_KEY || process.env.ISLEPILOT_KEY || 'ipa_f206e2743abf63ba9640fe110b0e1ae020746a0b863151b7').trim();
 }
 
 function getBaseUrl() {

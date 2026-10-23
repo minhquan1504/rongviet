@@ -1,0 +1,879 @@
+{
+  "ngayVN": "2026-10-24",
+  "homNay": [
+    {
+      "hang": 1,
+      "ten": "Bonz",
+      "loai": "Tyrannosaurus",
+      "phut": 80,
+      "km": 9.6,
+      "adult": 1,
+      "diem": 180,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 2,
+      "ten": "phutruongck",
+      "loai": "Dilophosaurus",
+      "phut": 185,
+      "km": 22.2,
+      "adult": 2,
+      "diem": 585,
+      "mau3d": {
+        "species": "Dilophosaurus",
+        "colors": {
+          "body": "#14532d",
+          "flank": "#156b37",
+          "underbelly": "#16a34a",
+          "markings": "#052e16",
+          "pattern": "#052e16",
+          "eyes": "#ef4444"
+        }
+      }
+    },
+    {
+      "hang": 3,
+      "ten": "Hao's Milk",
+      "loai": "Omniraptor",
+      "phut": 125,
+      "km": 15,
+      "adult": 1,
+      "diem": 325,
+      "mau3d": {
+        "species": "Omniraptor",
+        "colors": {
+          "body": "#1c1917",
+          "flank": "#292524",
+          "underbelly": "#44403c",
+          "markings": "#0c0a09",
+          "pattern": "#0c0a09",
+          "eyes": "#dc2626"
+        }
+      }
+    },
+    {
+      "hang": 4,
+      "ten": "Yuu",
+      "loai": "Giganotosaurus",
+      "phut": 265,
+      "km": 31.8,
+      "adult": 4,
+      "diem": 1165,
+      "mau3d": {
+        "species": "Giganotosaurus",
+        "colors": {
+          "body": "#3b4252",
+          "flank": "#4c566a",
+          "underbelly": "#65738c",
+          "markings": "#2e3440",
+          "pattern": "#2e3440",
+          "eyes": "#ebcb8b"
+        }
+      }
+    },
+    {
+      "hang": 5,
+      "ten": "KARIOUS",
+      "loai": "Deinosuchus",
+      "phut": 55,
+      "km": 6.6,
+      "adult": 1,
+      "diem": 255,
+      "mau3d": {
+        "species": "Deinosuchus",
+        "colors": {
+          "body": "#2d3748",
+          "flank": "#3d4b61",
+          "underbelly": "#4a5568",
+          "markings": "#1a202c",
+          "pattern": "#1a202c",
+          "eyes": "#d69e2e"
+        }
+      }
+    },
+    {
+      "hang": 6,
+      "ten": "BUSS",
+      "loai": "Tyrannosaurus",
+      "phut": 110,
+      "km": 13.2,
+      "adult": 1,
+      "diem": 310,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 7,
+      "ten": "ed",
+      "loai": "Diabloceratops",
+      "phut": 380,
+      "km": 45.6,
+      "adult": 6,
+      "diem": 1680,
+      "mau3d": {
+        "species": "Diabloceratops",
+        "colors": {
+          "body": "#581c87",
+          "flank": "#6b21a8",
+          "underbelly": "#7e22ce",
+          "markings": "#3b0764",
+          "pattern": "#3b0764",
+          "eyes": "#eab308"
+        }
+      }
+    },
+    {
+      "hang": 8,
+      "ten": "T-rex white",
+      "loai": "Allosaurus",
+      "phut": 680,
+      "km": 81.6,
+      "adult": 12,
+      "diem": 3080,
+      "mau3d": {
+        "species": "Allosaurus",
+        "colors": {
+          "body": "#3f3f46",
+          "flank": "#52525b",
+          "underbelly": "#71717a",
+          "markings": "#18181b",
+          "pattern": "#18181b",
+          "eyes": "#f59e0b"
+        }
+      }
+    },
+    {
+      "hang": 9,
+      "ten": "namtai0167",
+      "loai": "Gallimimus",
+      "phut": 60,
+      "km": 7.2,
+      "adult": 1,
+      "diem": 160,
+      "mau3d": {
+        "species": "Gallimimus",
+        "colors": {
+          "body": "#854d0e",
+          "flank": "#a15d12",
+          "underbelly": "#ca8a04",
+          "markings": "#422006",
+          "pattern": "#422006",
+          "eyes": "#10b981"
+        }
+      }
+    },
+    {
+      "hang": 10,
+      "ten": "Khoai Tây",
+      "loai": "Triceratops",
+      "phut": 100,
+      "km": 12,
+      "adult": 1,
+      "diem": 300,
+      "mau3d": {
+        "species": "Triceratops",
+        "colors": {
+          "body": "#595046",
+          "flank": "#6c6256",
+          "underbelly": "#8a7e6f",
+          "markings": "#3d342a",
+          "pattern": "#3d342a",
+          "eyes": "#a3702c"
+        }
+      }
+    },
+    {
+      "hang": 11,
+      "ten": "WarLord",
+      "loai": "Tyrannosaurus",
+      "phut": 95,
+      "km": 11.4,
+      "adult": 1,
+      "diem": 195,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 12,
+      "ten": "nguyendinhlongvv",
+      "loai": "Tyrannosaurus",
+      "phut": 45,
+      "km": 5.4,
+      "adult": 1,
+      "diem": 345,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 13,
+      "ten": "dodinhson01071998",
+      "loai": "Allosaurus",
+      "phut": 250,
+      "km": 30,
+      "adult": 3,
+      "diem": 950,
+      "mau3d": {
+        "species": "Allosaurus",
+        "colors": {
+          "body": "#3f3f46",
+          "flank": "#52525b",
+          "underbelly": "#71717a",
+          "markings": "#18181b",
+          "pattern": "#18181b",
+          "eyes": "#f59e0b"
+        }
+      }
+    },
+    {
+      "hang": 14,
+      "ten": "BãoT",
+      "loai": "Deinosuchus",
+      "phut": 95,
+      "km": 11.4,
+      "adult": 1,
+      "diem": 195,
+      "mau3d": {
+        "species": "Deinosuchus",
+        "colors": {
+          "body": "#2d3748",
+          "flank": "#3d4b61",
+          "underbelly": "#4a5568",
+          "markings": "#1a202c",
+          "pattern": "#1a202c",
+          "eyes": "#d69e2e"
+        }
+      }
+    },
+    {
+      "hang": 15,
+      "ten": "Steven",
+      "loai": "Herrerasaurus",
+      "phut": 190,
+      "km": 22.8,
+      "adult": 2,
+      "diem": 590,
+      "mau3d": {
+        "species": "Herrerasaurus",
+        "colors": {
+          "body": "#374151",
+          "flank": "#4b5563",
+          "underbelly": "#6b7280",
+          "markings": "#1f2937",
+          "pattern": "#1f2937",
+          "eyes": "#e11d48"
+        }
+      }
+    },
+    {
+      "hang": 16,
+      "ten": "JuCfl",
+      "loai": "Carnotaurus",
+      "phut": 330,
+      "km": 39.6,
+      "adult": 7,
+      "diem": 1830,
+      "mau3d": {
+        "species": "Carnotaurus",
+        "colors": {
+          "body": "#613d30",
+          "flank": "#7a4d3d",
+          "underbelly": "#946c5a",
+          "markings": "#3b2219",
+          "pattern": "#3b2219",
+          "eyes": "#c2410c"
+        }
+      }
+    },
+    {
+      "hang": 17,
+      "ten": "Bi Black",
+      "loai": "Allosaurus",
+      "phut": 90,
+      "km": 10.8,
+      "adult": 1,
+      "diem": 190,
+      "mau3d": {
+        "species": "Allosaurus",
+        "colors": {
+          "body": "#3f3f46",
+          "flank": "#52525b",
+          "underbelly": "#71717a",
+          "markings": "#18181b",
+          "pattern": "#18181b",
+          "eyes": "#f59e0b"
+        }
+      }
+    },
+    {
+      "hang": 18,
+      "ten": "Tazran xanh",
+      "loai": "Tyrannosaurus",
+      "phut": 115,
+      "km": 13.8,
+      "adult": 1,
+      "diem": 315,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 19,
+      "ten": "codocvuongg",
+      "loai": "Omniraptor",
+      "phut": 75,
+      "km": 9,
+      "adult": 1,
+      "diem": 175,
+      "mau3d": {
+        "species": "Omniraptor",
+        "colors": {
+          "body": "#1c1917",
+          "flank": "#292524",
+          "underbelly": "#44403c",
+          "markings": "#0c0a09",
+          "pattern": "#0c0a09",
+          "eyes": "#dc2626"
+        }
+      }
+    },
+    {
+      "hang": 20,
+      "ten": "Cưng A Cú",
+      "loai": "Tyrannosaurus",
+      "phut": 1725,
+      "km": 207,
+      "adult": 26,
+      "diem": 7025,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    }
+  ],
+  "thangNay": [
+    {
+      "hang": 1,
+      "ten": "Bonz",
+      "loai": "Tyrannosaurus",
+      "phut": 80,
+      "km": 9.6,
+      "adult": 1,
+      "diem": 180,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 2,
+      "ten": "phutruongck",
+      "loai": "Dilophosaurus",
+      "phut": 185,
+      "km": 22.2,
+      "adult": 2,
+      "diem": 585,
+      "mau3d": {
+        "species": "Dilophosaurus",
+        "colors": {
+          "body": "#14532d",
+          "flank": "#156b37",
+          "underbelly": "#16a34a",
+          "markings": "#052e16",
+          "pattern": "#052e16",
+          "eyes": "#ef4444"
+        }
+      }
+    },
+    {
+      "hang": 3,
+      "ten": "Hao's Milk",
+      "loai": "Omniraptor",
+      "phut": 125,
+      "km": 15,
+      "adult": 1,
+      "diem": 325,
+      "mau3d": {
+        "species": "Omniraptor",
+        "colors": {
+          "body": "#1c1917",
+          "flank": "#292524",
+          "underbelly": "#44403c",
+          "markings": "#0c0a09",
+          "pattern": "#0c0a09",
+          "eyes": "#dc2626"
+        }
+      }
+    },
+    {
+      "hang": 4,
+      "ten": "Yuu",
+      "loai": "Giganotosaurus",
+      "phut": 265,
+      "km": 31.8,
+      "adult": 4,
+      "diem": 1165,
+      "mau3d": {
+        "species": "Giganotosaurus",
+        "colors": {
+          "body": "#3b4252",
+          "flank": "#4c566a",
+          "underbelly": "#65738c",
+          "markings": "#2e3440",
+          "pattern": "#2e3440",
+          "eyes": "#ebcb8b"
+        }
+      }
+    },
+    {
+      "hang": 5,
+      "ten": "KARIOUS",
+      "loai": "Deinosuchus",
+      "phut": 55,
+      "km": 6.6,
+      "adult": 1,
+      "diem": 255,
+      "mau3d": {
+        "species": "Deinosuchus",
+        "colors": {
+          "body": "#2d3748",
+          "flank": "#3d4b61",
+          "underbelly": "#4a5568",
+          "markings": "#1a202c",
+          "pattern": "#1a202c",
+          "eyes": "#d69e2e"
+        }
+      }
+    },
+    {
+      "hang": 6,
+      "ten": "BUSS",
+      "loai": "Tyrannosaurus",
+      "phut": 110,
+      "km": 13.2,
+      "adult": 1,
+      "diem": 310,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 7,
+      "ten": "ed",
+      "loai": "Diabloceratops",
+      "phut": 380,
+      "km": 45.6,
+      "adult": 6,
+      "diem": 1680,
+      "mau3d": {
+        "species": "Diabloceratops",
+        "colors": {
+          "body": "#581c87",
+          "flank": "#6b21a8",
+          "underbelly": "#7e22ce",
+          "markings": "#3b0764",
+          "pattern": "#3b0764",
+          "eyes": "#eab308"
+        }
+      }
+    },
+    {
+      "hang": 8,
+      "ten": "T-rex white",
+      "loai": "Allosaurus",
+      "phut": 680,
+      "km": 81.6,
+      "adult": 12,
+      "diem": 3080,
+      "mau3d": {
+        "species": "Allosaurus",
+        "colors": {
+          "body": "#3f3f46",
+          "flank": "#52525b",
+          "underbelly": "#71717a",
+          "markings": "#18181b",
+          "pattern": "#18181b",
+          "eyes": "#f59e0b"
+        }
+      }
+    },
+    {
+      "hang": 9,
+      "ten": "namtai0167",
+      "loai": "Gallimimus",
+      "phut": 60,
+      "km": 7.2,
+      "adult": 1,
+      "diem": 160,
+      "mau3d": {
+        "species": "Gallimimus",
+        "colors": {
+          "body": "#854d0e",
+          "flank": "#a15d12",
+          "underbelly": "#ca8a04",
+          "markings": "#422006",
+          "pattern": "#422006",
+          "eyes": "#10b981"
+        }
+      }
+    },
+    {
+      "hang": 10,
+      "ten": "Khoai Tây",
+      "loai": "Triceratops",
+      "phut": 100,
+      "km": 12,
+      "adult": 1,
+      "diem": 300,
+      "mau3d": {
+        "species": "Triceratops",
+        "colors": {
+          "body": "#595046",
+          "flank": "#6c6256",
+          "underbelly": "#8a7e6f",
+          "markings": "#3d342a",
+          "pattern": "#3d342a",
+          "eyes": "#a3702c"
+        }
+      }
+    },
+    {
+      "hang": 11,
+      "ten": "WarLord",
+      "loai": "Tyrannosaurus",
+      "phut": 95,
+      "km": 11.4,
+      "adult": 1,
+      "diem": 195,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 12,
+      "ten": "nguyendinhlongvv",
+      "loai": "Tyrannosaurus",
+      "phut": 45,
+      "km": 5.4,
+      "adult": 1,
+      "diem": 345,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 13,
+      "ten": "dodinhson01071998",
+      "loai": "Allosaurus",
+      "phut": 250,
+      "km": 30,
+      "adult": 3,
+      "diem": 950,
+      "mau3d": {
+        "species": "Allosaurus",
+        "colors": {
+          "body": "#3f3f46",
+          "flank": "#52525b",
+          "underbelly": "#71717a",
+          "markings": "#18181b",
+          "pattern": "#18181b",
+          "eyes": "#f59e0b"
+        }
+      }
+    },
+    {
+      "hang": 14,
+      "ten": "BãoT",
+      "loai": "Deinosuchus",
+      "phut": 95,
+      "km": 11.4,
+      "adult": 1,
+      "diem": 195,
+      "mau3d": {
+        "species": "Deinosuchus",
+        "colors": {
+          "body": "#2d3748",
+          "flank": "#3d4b61",
+          "underbelly": "#4a5568",
+          "markings": "#1a202c",
+          "pattern": "#1a202c",
+          "eyes": "#d69e2e"
+        }
+      }
+    },
+    {
+      "hang": 15,
+      "ten": "Steven",
+      "loai": "Herrerasaurus",
+      "phut": 190,
+      "km": 22.8,
+      "adult": 2,
+      "diem": 590,
+      "mau3d": {
+        "species": "Herrerasaurus",
+        "colors": {
+          "body": "#374151",
+          "flank": "#4b5563",
+          "underbelly": "#6b7280",
+          "markings": "#1f2937",
+          "pattern": "#1f2937",
+          "eyes": "#e11d48"
+        }
+      }
+    },
+    {
+      "hang": 16,
+      "ten": "JuCfl",
+      "loai": "Carnotaurus",
+      "phut": 330,
+      "km": 39.6,
+      "adult": 7,
+      "diem": 1830,
+      "mau3d": {
+        "species": "Carnotaurus",
+        "colors": {
+          "body": "#613d30",
+          "flank": "#7a4d3d",
+          "underbelly": "#946c5a",
+          "markings": "#3b2219",
+          "pattern": "#3b2219",
+          "eyes": "#c2410c"
+        }
+      }
+    },
+    {
+      "hang": 17,
+      "ten": "Bi Black",
+      "loai": "Allosaurus",
+      "phut": 90,
+      "km": 10.8,
+      "adult": 1,
+      "diem": 190,
+      "mau3d": {
+        "species": "Allosaurus",
+        "colors": {
+          "body": "#3f3f46",
+          "flank": "#52525b",
+          "underbelly": "#71717a",
+          "markings": "#18181b",
+          "pattern": "#18181b",
+          "eyes": "#f59e0b"
+        }
+      }
+    },
+    {
+      "hang": 18,
+      "ten": "Tazran xanh",
+      "loai": "Tyrannosaurus",
+      "phut": 115,
+      "km": 13.8,
+      "adult": 1,
+      "diem": 315,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    {
+      "hang": 19,
+      "ten": "codocvuongg",
+      "loai": "Omniraptor",
+      "phut": 75,
+      "km": 9,
+      "adult": 1,
+      "diem": 175,
+      "mau3d": {
+        "species": "Omniraptor",
+        "colors": {
+          "body": "#1c1917",
+          "flank": "#292524",
+          "underbelly": "#44403c",
+          "markings": "#0c0a09",
+          "pattern": "#0c0a09",
+          "eyes": "#dc2626"
+        }
+      }
+    },
+    {
+      "hang": 20,
+      "ten": "Cưng A Cú",
+      "loai": "Tyrannosaurus",
+      "phut": 1725,
+      "km": 207,
+      "adult": 26,
+      "diem": 7025,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    }
+  ],
+  "kyLucNgay": {
+    "songLau": {
+      "hang": 1,
+      "ten": "Bonz",
+      "loai": "Tyrannosaurus",
+      "phut": 80,
+      "km": 9.6,
+      "adult": 1,
+      "diem": 180,
+      "mau3d": {
+        "species": "Tyrannosaurus",
+        "colors": {
+          "body": "#4a4039",
+          "flank": "#5c5047",
+          "underbelly": "#827364",
+          "markings": "#2d251e",
+          "pattern": "#2d251e",
+          "eyes": "#b87333"
+        }
+      }
+    },
+    "diXa": {
+      "hang": 2,
+      "ten": "phutruongck",
+      "loai": "Dilophosaurus",
+      "phut": 185,
+      "km": 22.2,
+      "adult": 2,
+      "diem": 585,
+      "mau3d": {
+        "species": "Dilophosaurus",
+        "colors": {
+          "body": "#14532d",
+          "flank": "#156b37",
+          "underbelly": "#16a34a",
+          "markings": "#052e16",
+          "pattern": "#052e16",
+          "eyes": "#ef4444"
+        }
+      }
+    },
+    "nuoiLon": {
+      "hang": 3,
+      "ten": "Hao's Milk",
+      "loai": "Omniraptor",
+      "phut": 125,
+      "km": 15,
+      "adult": 1,
+      "diem": 325,
+      "mau3d": {
+        "species": "Omniraptor",
+        "colors": {
+          "body": "#1c1917",
+          "flank": "#292524",
+          "underbelly": "#44403c",
+          "markings": "#0c0a09",
+          "pattern": "#0c0a09",
+          "eyes": "#dc2626"
+        }
+      }
+    }
+  },
+  "coef": {
+    "phut": 1,
+    "km": 1,
+    "adult": 500
+  },
+  "adultToiDaNgay": 2,
+  "kmDangDo": false,
+  "builtAt": 1792796744,
+  "sampleIntervalS": 600,
+  "doTuNgay": "2026-10-01"
+}

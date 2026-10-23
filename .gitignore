@@ -5,7 +5,5 @@ node_modules/
 *.exe
 dino4vn.com/launcher/*.exe
 *.log
-__pycache__/
-dino4vn.com/api/status.json
-dino4vn.com/api/bang-xep-hang.json
 !dino4vn.com/launcher/RongVietLauncher.exe
+

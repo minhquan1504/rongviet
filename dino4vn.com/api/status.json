@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "name": "[VN] Rồng Việt",
+  "server": "RONG VIET | X2 Growth | discord.gg/rvie",
+  "server_display": "[VN] Rồng Việt",
+  "online": true,
+  "players": 0,
+  "maxPlayers": 200,
+  "max_players": 200,
+  "queueLength": 0,
+  "map": "Gateway",
+  "updatedAt": "2026-10-23T23:05:44.743Z",
+  "speciesLive": {},
+  "top_species": [],
+  "uptime_human": "Trực tuyến",
+  "heartbeat_age_seconds": 3
+}

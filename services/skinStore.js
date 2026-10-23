@@ -153,6 +153,10 @@ function readAllSkins() {
         if (fs.existsSync(SKINS_FILE)) {
             return JSON.parse(fs.readFileSync(SKINS_FILE, 'utf8'));
         }
+        const repoFile = path.join(__dirname, '..', 'data', 'player_skins.json');
+        if (fs.existsSync(repoFile)) {
+            return JSON.parse(fs.readFileSync(repoFile, 'utf8'));
+        }
     } catch (e) {
         console.warn('Lỗi đọc player_skins.json:', e.message);
     }
