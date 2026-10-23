@@ -1,39 +1,92 @@
-/**
- * IslePilot Integration Service
- * Kết nối và đồng bộ dữ liệu người chơi thật từ máy chủ The Isle qua IslePilot v1 REST API
- */
+const fs = require('fs');
+const path = require('path');
 
-const ISLEPILOT_KEY = process.env.ISLEPILOT_KEY || 'ipa_f206e2743abf63ba9640fe110b0e1ae020746a0b863151b7';
-const ISLEPILOT_URL = (process.env.ISLEPILOT_URL || 'https://islepilot.eu/api/v1').replace(/\/$/, '');
+// Tự động đọc biến môi trường từ file .env
+function loadEnv() {
+    const envPath = path.join(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+        try {
+            const content = fs.readFileSync(envPath, 'utf8');
+            for (const line of content.split('\n')) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('#')) continue;
+                const eqIdx = trimmed.indexOf('=');
+                if (eqIdx > 0) {
+                    const key = trimmed.slice(0, eqIdx).trim();
+                    let val = trimmed.slice(eqIdx + 1).trim();
+                    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                        val = val.slice(1, -1);
+                    }
+                    if (!process.env[key]) {
+                        process.env[key] = val;
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+}
+loadEnv();
+
+const ISLEPILOT_API_KEY = (process.env.ISLEPILOT_API_KEY || process.env.ISLEPILOT_KEY || '').trim();
+const ISLEPILOT_API_BASE_URL = (process.env.ISLEPILOT_API_BASE_URL || process.env.ISLEPILOT_URL || 'https://islepilot.eu/api/v1').trim().replace(/\/$/, '');
 
 const skinStore = require('./skinStore');
 
-const HEADERS = {
-    'Authorization': `Bearer ${ISLEPILOT_KEY}`,
-    'User-Agent': 'Dino4VN-RongViet-Web/2026'
-};
-
 /**
- * Gọi API IslePilot v1
+ * Gọi API IslePilot v1 với đầy đủ phương thức HTTP, timeout và xử lý lỗi
  */
-async function fetchIslePilot(endpoint) {
-    if (!ISLEPILOT_KEY) return null;
+async function requestIslePilot(endpoint, options = {}) {
+    if (!ISLEPILOT_API_KEY) {
+        return { ok: false, status: 500, error: 'Chưa cấu hình ISLEPILOT_API_KEY trong file .env' };
+    }
+
+    const method = options.method || 'GET';
+    const url = `${ISLEPILOT_API_BASE_URL}${endpoint}`;
+    const headers = {
+        'Authorization': `Bearer ${ISLEPILOT_API_KEY}`,
+        'User-Agent': 'Dino4VN-RongViet-Web/2026',
+        'Accept': 'application/json',
+        ...(options.headers || {})
+    };
+
+    let body = options.body;
+    if (body !== undefined && body !== null && typeof body === 'object' && !(body instanceof Buffer)) {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify(body);
+    }
 
     try {
-        const url = `${ISLEPILOT_URL}${endpoint}`;
         const res = await fetch(url, {
-            headers: HEADERS,
-            signal: AbortSignal.timeout(8000)
+            method: method,
+            headers: headers,
+            body: body,
+            signal: AbortSignal.timeout(options.timeout || 10000)
         });
+
+        let data = null;
+        const text = await res.text();
+        try {
+            if (text) data = JSON.parse(text);
+        } catch (e) {
+            data = text;
+        }
+
         if (res.ok) {
-            return await res.json();
+            return { ok: true, status: res.status, data: data };
         } else {
-            console.warn(`[IslePilot] ${endpoint} returned status ${res.status}`);
+            const errMsg = (data && typeof data === 'object' && (data.error || data.detail || data.message))
+                ? (data.error || data.detail || data.message)
+                : `Máy chủ trả về mã lỗi HTTP ${res.status}`;
+            return { ok: false, status: res.status, error: errMsg, data: data };
         }
     } catch (e) {
-        console.warn(`[IslePilot] Error fetching ${endpoint}:`, e.message);
+        return { ok: false, status: 500, error: e.message || 'Lỗi kết nối mạng đến IslePilot' };
     }
-    return null;
+}
+
+async function fetchIslePilot(endpoint) {
+    const res = await requestIslePilot(endpoint, { method: 'GET' });
+    return res.ok ? res.data : null;
 }
 
 /**
@@ -182,31 +235,63 @@ async function getPlayerMap(steamId) {
  * 3. Lấy danh sách khủng long trong Gara (/api/player/garage)
  */
 async function getPlayerGarage(steamId) {
-    if (!steamId) return { ok: false, err: 'chua_dang_nhap' };
+    if (!steamId) return { ok: false, err: 'chua_dang_nhap', slots: [] };
 
     try {
-        const raw = await fetchIslePilot(`/players/${steamId}/garage`);
+        const res = await requestIslePilot(`/players/${steamId}/garage`);
+        const raw = res.data;
 
-        if (raw && (raw.garage || Array.isArray(raw))) {
-            const slots = Array.isArray(raw) ? raw : (raw.garage || []);
+        if (res.ok && raw && (raw.garage || Array.isArray(raw))) {
+            const rawSlots = Array.isArray(raw) ? raw : (raw.garage || []);
             return {
                 ok: true,
-                slots: slots.map((s, idx) => {
+                quota: typeof raw.quota === 'number' ? raw.quota : 3,
+                slots: rawSlots.map((s, idx) => {
                     const species = skinStore.normalizeSpecies(s.species || s.dino || 'Spinosaurus');
                     const savedSkin = skinStore.getSkin(steamId, species) || {};
                     const colors = (s.colors && Object.keys(s.colors).length) ? { ...s.colors } : { ...(savedSkin.colors || {}) };
                     if (colors.markings && !colors.pattern) colors.pattern = colors.markings;
                     if (colors.pattern && !colors.markings) colors.markings = colors.pattern;
+
+                    const isFemale = s.female === true || String(s.gender || '').toLowerCase() === 'female';
+                    const storedAt = s.parkedAt
+                        ? Math.floor(new Date(s.parkedAt).getTime() / 1000)
+                        : (typeof s.stored_at === 'number' ? s.stored_at : null);
+
+                    const growth = typeof s.growth === 'number' ? s.growth : 1.0;
+                    const health = typeof s.health === 'number' ? s.health : 1.0;
+                    const hunger = typeof s.hunger === 'number' ? s.hunger : 1.0;
+                    const thirst = typeof s.thirst === 'number' ? s.thirst : 1.0;
+                    const stamina = typeof s.stamina === 'number' ? s.stamina : 1.0;
+
                     return {
-                        slot: s.slot || idx + 1,
+                        id: s.id || `slot-${idx + 1}`,
+                        slot: s.slot || (idx + 1),
                         species: species,
-                        female: !!s.female,
-                        growth: typeof s.growth === 'number' ? s.growth : 1.0,
+                        name: s.name || null,
+                        female: isFemale,
+                        growth: growth,
+                        health: health,
+                        hunger: hunger,
+                        thirst: thirst,
+                        stamina: stamina,
+                        isPrimeElder: !!s.isPrimeElder,
+                        mutations: Array.isArray(s.mutations) ? s.mutations : [],
+                        stored_at: storedAt,
                         colors: colors,
-                        skin: s.skin || savedSkin.skin || { variation: 0, pattern: 1, theme: 0 }
+                        skin: s.skin || savedSkin.skin || { variation: 0, pattern: 1, theme: 0 },
+                        vitals: {
+                            health: health,
+                            hunger: hunger,
+                            thirst: thirst,
+                            stamina: stamina
+                        }
                     };
                 })
             };
+        }
+        if (!res.ok) {
+            return { ok: false, error: res.error || 'Không thể tải danh sách gara', slots: [] };
         }
     } catch (err) {
         console.warn(`[IslePilot] Không thể tải gara cho SteamID ${steamId}:`, err.message);
@@ -214,7 +299,79 @@ async function getPlayerGarage(steamId) {
 
     return {
         ok: true,
+        quota: 3,
         slots: []
+    };
+}
+
+/**
+ * 3.1. Cất khủng long đang chơi vào Gara (POST /players/{steamId}/garage/park)
+ */
+async function parkDino(steamId) {
+    if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    return await requestIslePilot(`/players/${steamId}/garage/park`, {
+        method: 'POST',
+        body: {}
+    });
+}
+
+/**
+ * 3.2. Lấy khủng long từ Gara ra (POST /players/{steamId}/garage/{garageDinoId}/restore)
+ */
+async function restoreDino(steamId, garageDinoId) {
+    if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    if (!garageDinoId) return { ok: false, error: 'Thiếu mã khủng long gara (garageDinoId)' };
+    return await requestIslePilot(`/players/${steamId}/garage/${encodeURIComponent(garageDinoId)}/restore`, {
+        method: 'POST',
+        body: {}
+    });
+}
+
+/**
+ * 3.3. Lấy danh sách skin / presets của người chơi (GET /players/{steamId}/skins)
+ */
+async function getPlayerSkins(steamId) {
+    if (!steamId) return { ok: false, skins: [] };
+    const res = await requestIslePilot(`/players/${steamId}/skins`);
+    return {
+        ok: res.ok,
+        skins: res.data?.skins || [],
+        error: res.error
+    };
+}
+
+/**
+ * 3.4. Áp dụng skin tùy chỉnh trực tiếp vào game (POST /players/{steamId}/skin/apply)
+ */
+async function applyPlayerSkin(steamId, payload) {
+    if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    return await requestIslePilot(`/players/${steamId}/skin/apply`, {
+        method: 'POST',
+        body: payload
+    });
+}
+
+/**
+ * 3.5. Áp dụng skin preset đã sở hữu vào game (POST /players/{steamId}/skins/{presetId}/apply)
+ */
+async function applyPlayerSkinPreset(steamId, presetId) {
+    if (!steamId) return { ok: false, error: 'Chưa đăng nhập Steam' };
+    if (!presetId) return { ok: false, error: 'Thiếu presetId' };
+    return await requestIslePilot(`/players/${steamId}/skins/${encodeURIComponent(presetId)}/apply`, {
+        method: 'POST',
+        body: {}
+    });
+}
+
+/**
+ * 3.6. Lấy danh sách skin bán trong cửa hàng (GET /shop/skins)
+ */
+async function getShopSkins() {
+    const res = await requestIslePilot('/shop/skins');
+    return {
+        ok: res.ok,
+        skins: res.data?.skins || [],
+        error: res.error
     };
 }
 
@@ -376,11 +533,20 @@ async function getRealLeaderboard() {
 }
 
 module.exports = {
-    ISLEPILOT_KEY,
-    ISLEPILOT_URL,
+    ISLEPILOT_API_KEY,
+    ISLEPILOT_API_BASE_URL,
+    ISLEPILOT_KEY: ISLEPILOT_API_KEY,
+    ISLEPILOT_URL: ISLEPILOT_API_BASE_URL,
+    requestIslePilot,
     getLivePlayer,
     getPlayerMap,
     getPlayerGarage,
+    parkDino,
+    restoreDino,
+    getPlayerSkins,
+    applyPlayerSkin,
+    applyPlayerSkinPreset,
+    getShopSkins,
     getRealStatus,
     getRealLeaderboard
 };

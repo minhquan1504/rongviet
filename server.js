@@ -9,6 +9,32 @@ const path = require('path');
 const url = require('url');
 const crypto = require('crypto');
 
+// Tự động đọc biến môi trường từ file .env
+function loadEnv() {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        try {
+            const content = fs.readFileSync(envPath, 'utf8');
+            for (const line of content.split('\n')) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('#')) continue;
+                const eqIdx = trimmed.indexOf('=');
+                if (eqIdx > 0) {
+                    const key = trimmed.slice(0, eqIdx).trim();
+                    let val = trimmed.slice(eqIdx + 1).trim();
+                    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                        val = val.slice(1, -1);
+                    }
+                    if (!process.env[key]) {
+                        process.env[key] = val;
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+}
+loadEnv();
+
 const islepilot = require('./services/islepilot');
 const skinStore = require('./services/skinStore');
 
@@ -39,6 +65,23 @@ function getSession(req, res) {
     }
     res.setHeader('Set-Cookie', `connect.sid=${sid}; Path=/; HttpOnly; Max-Age=${30 * 24 * 3600}`);
     return sessions.get(sid);
+}
+
+function getAuthSteamId(req, session) {
+    if (session && session.user && session.user.logged_in && session.user.steamid) {
+        return session.user.steamid;
+    }
+    // Hỗ trợ launcher desktop qua HTTP header hoặc query (yêu cầu đúng định dạng SteamID64 17 chữ số)
+    const hId = req.headers['x-steam-id'] || req.headers['x-steamid64'];
+    if (hId && typeof hId === 'string' && /^\d{17}$/.test(hId.trim())) {
+        return hId.trim();
+    }
+    const parsed = url.parse(req.url, true);
+    const qId = parsed.query?.steamid || parsed.query?.steamid64;
+    if (qId && typeof qId === 'string' && /^\d{17}$/.test(qId.trim())) {
+        return qId.trim();
+    }
+    return null;
 }
 
 const MIME_TYPES = {
@@ -214,43 +257,148 @@ async function handleRequest(req, res, currentPort) {
 
     // ── 4. API Skin & Khủng long ─────────────────────────────────────────────
     if (pathname === '/api/player/skin') {
-        const steamId = session?.user?.steamid || '76561199805093098'; // fallback steamid
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) {
+            return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap' });
+        }
+
         const live = await islepilot.getLivePlayer(steamId);
         const species = live?.song?.species || 'Spinosaurus';
 
         if (req.method === 'POST') {
+            // 1. Luôn lưu vào kho skin cục bộ để bảo toàn tùy chỉnh người chơi
             skinStore.saveSkin(steamId, bodyJson.species || species, {
                 colors: bodyJson.colors || bodyJson,
                 skin: bodyJson.skin || { variation: bodyJson.variation, pattern: bodyJson.pattern, theme: bodyJson.theme }
             });
-            return sendJson(res, 200, { ok: true, message: 'Đã lưu màu skin thành công!' });
+
+            // 2. Tích hợp gửi sang IslePilot API
+            let pilotResult = null;
+            if (bodyJson.presetId) {
+                // Áp dụng skin preset đã sở hữu
+                pilotResult = await islepilot.applyPlayerSkinPreset(steamId, bodyJson.presetId);
+            } else {
+                // Áp dụng skin tùy chỉnh trực tiếp
+                pilotResult = await islepilot.applyPlayerSkin(steamId, bodyJson);
+            }
+
+            if (pilotResult && pilotResult.ok) {
+                return sendJson(res, 200, {
+                    ok: true,
+                    message: 'Đã áp dụng màu skin vào game thành công!'
+                });
+            } else {
+                // Trả về chính xác thông báo lỗi từ IslePilot để giao diện thông báo thật cho người chơi
+                const errMsg = pilotResult?.error || 'Chưa thể áp màu vào game.';
+                return sendJson(res, 200, {
+                    ok: false,
+                    res: errMsg,
+                    localSaved: true
+                });
+            }
         }
 
-        const savedSkin = skinStore.getSkin(steamId, species) || {};
+        const [savedSkin, skinsData] = await Promise.all([
+            Promise.resolve(skinStore.getSkin(steamId, species) || {}),
+            islepilot.getPlayerSkins(steamId)
+        ]);
+
         return sendJson(res, 200, {
             ok: true,
             species: species,
             female: live?.song?.gender === 'female',
             growth: live?.song?.growth || 1.0,
             colors: savedSkin.colors || {},
-            skin: savedSkin.skin || { variation: 0, pattern: 1, theme: 0 }
+            skin: savedSkin.skin || { variation: 0, pattern: 1, theme: 0 },
+            presets: skinsData.skins || []
         });
     }
 
+    if (pathname === '/api/player/skins') {
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap' });
+        const data = await islepilot.getPlayerSkins(steamId);
+        return sendJson(res, 200, data);
+    }
+
+    if (pathname === '/api/shop/skins') {
+        const data = await islepilot.getShopSkins();
+        return sendJson(res, 200, data);
+    }
+
+    // ── 4.1. Gara Khủng long ─────────────────────────────────────────────────
     if (pathname === '/api/player/garage') {
-        const steamId = session?.user?.steamid || '76561199805093098';
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap', slots: [] });
         const data = await islepilot.getPlayerGarage(steamId);
         return sendJson(res, 200, data);
     }
 
+    if (pathname === '/api/player/garage/store' || pathname === '/api/player/garage/park') {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, err: 'method_not_allowed' });
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap' });
+
+        const parkRes = await islepilot.parkDino(steamId);
+        if (parkRes.ok) {
+            return sendJson(res, 200, {
+                ok: true,
+                slot: bodyJson.slot || 1,
+                cho: 30,
+                di_xa_m: 3
+            });
+        }
+        return sendJson(res, 200, {
+            ok: false,
+            res: parkRes.error || 'Không thể cất khủng long vào gara lúc này.'
+        });
+    }
+
+    if (pathname === '/api/player/garage/load' || pathname === '/api/player/garage/restore') {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, err: 'method_not_allowed' });
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 401, { ok: false, err: 'chua_dang_nhap' });
+
+        let dinoId = bodyJson.id || bodyJson.garageDinoId;
+        if (!dinoId && typeof bodyJson.slot === 'number') {
+            const gData = await islepilot.getPlayerGarage(steamId);
+            const found = (gData.slots || []).find(s => s.slot === bodyJson.slot);
+            if (found && found.id) {
+                dinoId = found.id;
+            } else {
+                return sendJson(res, 200, { ok: false, res: `Không tìm thấy khủng long ở ô ${bodyJson.slot}.` });
+            }
+        }
+
+        if (!dinoId) {
+            return sendJson(res, 200, { ok: false, res: 'Thiếu thông tin ô hoặc mã khủng long cần lấy.' });
+        }
+
+        const restoreRes = await islepilot.restoreDino(steamId, dinoId);
+        if (restoreRes.ok) {
+            return sendJson(res, 200, {
+                ok: true,
+                cho_lay_s: 60,
+                di_xa_m: 3,
+                noi_hien: 'tai_cho'
+            });
+        }
+        return sendJson(res, 200, {
+            ok: false,
+            res: restoreRes.error || 'Không thể lấy khủng long ra lúc này.'
+        });
+    }
+
     if (pathname === '/api/player/live') {
-        const steamId = session?.user?.steamid || '76561199805093098';
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 200, { ok: true, in_game: false, song: { in_game: false } });
         const data = await islepilot.getLivePlayer(steamId);
         return sendJson(res, 200, data);
     }
 
     if (pathname === '/api/player/map') {
-        const steamId = session?.user?.steamid || '76561199805093098';
+        const steamId = getAuthSteamId(req, session);
+        if (!steamId) return sendJson(res, 200, { ok: true, in_game: false });
         const data = await islepilot.getPlayerMap(steamId);
         return sendJson(res, 200, data);
     }
